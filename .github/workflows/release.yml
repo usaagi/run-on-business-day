@@ -128,13 +128,12 @@ jobs:
           cp dist/run-on-business-day.exe npm/win32-x64/bin/run-on-business-day.exe
 
       - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cat > ~/.npmrc <<EOF
-          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
-          @usaagi:registry=https://npm.pkg.github.com
-          registry=https://npm.pkg.github.com
-          EOF
-          cd npm/linux-x64 && npm publish && cd ../..
-          cd npm/linux-arm64 && npm publish && cd ../..
-          cd npm/win32-x64 && npm publish && cd ../..
-          cd npm/run-on-business-day && npm publish && cd ../..
+          npm config set @usaagi:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken $NODE_AUTH_TOKEN
+          cd npm/linux-x64 && npm publish --registry https://npm.pkg.github.com && cd ../..
+          cd npm/linux-arm64 && npm publish --registry https://npm.pkg.github.com && cd ../..
+          cd npm/win32-x64 && npm publish --registry https://npm.pkg.github.com && cd ../..
+          cd npm/run-on-business-day && npm publish --registry https://npm.pkg.github.com && cd ../..

@@ -35,7 +35,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Create tag: v2026.0, v2027.0, ...
-          TAG="v$(date +%Y).0"
+          # Create tag: v2026.0.0, v2027.0.0, ...
+          TAG="v$(date +%Y).0.0"
           git tag "$TAG" -m "Annual holiday CSV update for $(date +%Y)"
           git push origin "$TAG"

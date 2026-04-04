@@ -31,21 +31,21 @@ sudo chmod +x /usr/local/bin/run-on-business-day
 
 設定完了後、ターミナルで `run-on-business-day --help` を実行できれば配置完了です。
 
-### npm / bun を用いた場合（GitHub Packages）
+### npm / bun を用いた場合（GitHub から直接インストール）
 
-[Node.js](https://nodejs.org/) または [Bun](https://bun.sh/) がインストールされている環境では、GitHub Packages から直接インストール可能です。
+[Node.js](https://nodejs.org/) または [Bun](https://bun.sh/) がインストールされている環境では、GitHub から直接インストール可能です。
 
 **npm の場合：**
 ```bash
-npm install -g usaagi/run-on-business-day@github:usaagi/run-on-business-day
+npm install -g usaagi/run-on-business-day
 ```
 
 **bun の場合：**
 ```bash
-bun add -g usaagi/run-on-business-day@github:usaagi/run-on-business-day
+bun add -g usaagi/run-on-business-day
 ```
 
-> 注意：GitHub Packages から直接インストールする場合は、認証が必要です。`~/.npmrc` に `//npm.pkg.github.com/:_authToken=<GitHub Token>` を設定してください。
+このコマンドは GitHub Releases のバイナリを自動的にダウンロードしてインストールします。
 
 > 備考：自動的に実行環境（OS・CPU）に応じた適切なバイナリが選択されます。
 

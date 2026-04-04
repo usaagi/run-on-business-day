@@ -1,5 +1,5 @@
 {
-  "name": "run-on-business-day",
+  "name": "@usaagi/run-on-business-day",
   "version": "0.0.0",
   "description": "Run commands only on Japanese business days",
   "license": "MIT",

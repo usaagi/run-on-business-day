@@ -134,4 +134,4 @@ jobs:
           cd npm/linux-x64 && npm publish --access public && cd ../..
           cd npm/linux-arm64 && npm publish --access public && cd ../..
           cd npm/win32-x64 && npm publish --access public && cd ../..
-          cd npm/run-on-business-day && npm publish && cd ../..
+          cd npm/run-on-business-day && npm publish --access public && cd ../..

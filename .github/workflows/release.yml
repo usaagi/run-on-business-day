@@ -116,11 +116,12 @@ jobs:
           cp artifacts/binary-windows-amd64/run-on-business-day.exe dist/
 
           # Restore npm package structures with binaries
-          cp -r artifacts/npm-linux-x64 npm/linux-x64
-          cp -r artifacts/npm-linux-arm64 npm/linux-arm64
-          cp -r artifacts/npm-win32-x64 npm/win32-x64
+          cp -r artifacts/npm-linux-x64/* npm/linux-x64/
+          cp -r artifacts/npm-linux-arm64/* npm/linux-arm64/
+          cp -r artifacts/npm-win32-x64/* npm/win32-x64/
 
           ls -la dist/
+          ls -la npm/linux-x64/
 
       - name: Publish to npm
         run: |

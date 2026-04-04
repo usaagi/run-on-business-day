@@ -1,5 +1,5 @@
 {
-  "name": "@usaagi/run-on-business-day-win32-x64",
+  "name": "usaagi-run-on-business-day-win32-x64",
   "version": "0.0.0",
   "description": "run-on-business-day binary for Windows x64",
   "license": "MIT",

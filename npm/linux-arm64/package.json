@@ -1,5 +1,5 @@
 {
-  "name": "@usaagi/run-on-business-day-linux-arm64",
+  "name": "usaagi-run-on-business-day-linux-arm64",
   "version": "0.0.0",
   "description": "run-on-business-day binary for Linux ARM64",
   "license": "MIT",

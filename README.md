@@ -45,6 +45,8 @@ npm install -g usaagi/run-on-business-day@github:usaagi/run-on-business-day
 bun add -g usaagi/run-on-business-day@github:usaagi/run-on-business-day
 ```
 
+> 注意：GitHub Packages から直接インストールする場合は、認証が必要です。`~/.npmrc` に `//npm.pkg.github.com/:_authToken=<GitHub Token>` を設定してください。
+
 > 備考：自動的に実行環境（OS・CPU）に応じた適切なバイナリが選択されます。
 
 ## 使い方

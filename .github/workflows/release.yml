@@ -98,6 +98,11 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Clear npm config
+        run: |
+          rm -f ~/.npmrc
+          npm config set registry https://registry.npmjs.org/
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:

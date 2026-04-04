@@ -128,10 +128,10 @@ jobs:
           VERSION=${{ github.ref_name }}
           VERSION=${VERSION#v}
 
-          npm version ${VERSION} --no-git-tag-version -w npm/linux-x64
-          npm version ${VERSION} --no-git-tag-version -w npm/linux-arm64
-          npm version ${VERSION} --no-git-tag-version -w npm/win32-x64
-          npm version ${VERSION} --no-git-tag-version -w npm/run-on-business-day
+          cd npm/linux-x64 && npm version ${VERSION} --no-git-tag-version && cd ../..
+          cd npm/linux-arm64 && npm version ${VERSION} --no-git-tag-version && cd ../..
+          cd npm/win32-x64 && npm version ${VERSION} --no-git-tag-version && cd ../..
+          cd npm/run-on-business-day && npm version ${VERSION} --no-git-tag-version && cd ../..
 
       - name: Publish to npm
         run: |

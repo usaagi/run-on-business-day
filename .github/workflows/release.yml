@@ -123,6 +123,16 @@ jobs:
           ls -la dist/
           ls -la npm/linux-x64/
 
+      - name: Update version in npm packages
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+
+          npm version ${VERSION} --no-git-tag-version -w npm/linux-x64
+          npm version ${VERSION} --no-git-tag-version -w npm/linux-arm64
+          npm version ${VERSION} --no-git-tag-version -w npm/win32-x64
+          npm version ${VERSION} --no-git-tag-version -w npm/run-on-business-day
+
       - name: Publish to npm
         run: |
           npm publish ./npm/linux-x64 --access public --provenance

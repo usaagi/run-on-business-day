@@ -8,12 +8,19 @@
     "type": "git",
     "url": "https://github.com/usaagi/run-on-business-day"
   },
-  "os": ["linux"],
-  "cpu": ["arm64"],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
   "bin": {
+    "publishConfig": {
+      "registry": "https://npm.pkg.github.com"
+    },
+    "run-on-business-day": "bin/run-on-business-day"
+  },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
-  },
-    "run-on-business-day": "bin/run-on-business-day"
   }
 }

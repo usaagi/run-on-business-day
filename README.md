@@ -31,23 +31,21 @@ sudo chmod +x /usr/local/bin/run-on-business-day
 
 設定完了後、ターミナルで `run-on-business-day --help` を実行できれば配置完了です。
 
-### npm / bun を用いた場合
+### npm / bun を用いた場合（GitHub Packages）
 
-[Node.js](https://nodejs.org/) または [Bun](https://bun.sh/) がインストールされている環境では直接インストール可能です。
+[Node.js](https://nodejs.org/) または [Bun](https://bun.sh/) がインストールされている環境では、GitHub Packages から直接インストール可能です。
 
+**npm の場合：**
 ```bash
-# npm
-npm install -g @usaagi/run-on-business-day
+npm install -g usaagi/run-on-business-day@github:usaagi/run-on-business-day
+```
 
-# bun
-bun add -g @usaagi/run-on-business-day
+**bun の場合：**
+```bash
+bun add -g usaagi/run-on-business-day@github:usaagi/run-on-business-day
 ```
 
 > 備考：自動的に実行環境（OS・CPU）に応じた適切なバイナリが選択されます。
-> - プラットフォーム別パッケージを明示的に指定することも可能です：
->   - Linux x64: `@usaagi/run-on-business-day-linux-x64`
->   - Linux ARM64: `@usaagi/run-on-business-day-linux-arm64`
->   - Windows x64: `@usaagi/run-on-business-day-win32-x64`
 
 ## 使い方
 
@@ -106,12 +104,12 @@ run-on-business-day -- sh -c 'backup.sh > out.log 2>&1'
 
 npm でインストール済みの場合：
 ```bash
-npm update -g @usaagi/run-on-business-day
+npm install -g usaagi/run-on-business-day@github:usaagi/run-on-business-day@latest
 ```
 
 Bun でインストール済みの場合：
 ```bash
-bun update -g @usaagi/run-on-business-day
+bun add -g usaagi/run-on-business-day@github:usaagi/run-on-business-day@latest
 ```
 
 毎年自動でリリースされるため、定期的に更新することで、常に最新の祝日データを利用できます。

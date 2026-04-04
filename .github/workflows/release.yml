@@ -127,11 +127,11 @@ jobs:
           mkdir -p npm/win32-x64/bin
           cp dist/run-on-business-day.exe npm/win32-x64/bin/run-on-business-day.exe
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to GitHub Packages
         run: |
-          cd npm/linux-x64 && npm publish --access public && cd ../..
-          cd npm/linux-arm64 && npm publish --access public && cd ../..
-          cd npm/win32-x64 && npm publish --access public && cd ../..
-          cd npm/run-on-business-day && npm publish --access public && cd ../..
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          echo "@usaagi:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          cd npm/linux-x64 && npm publish && cd ../..
+          cd npm/linux-arm64 && npm publish && cd ../..
+          cd npm/win32-x64 && npm publish && cd ../..
+          cd npm/run-on-business-day && npm publish && cd ../..

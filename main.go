@@ -60,26 +60,30 @@ func main() {
 	// --check オプションの挙動: 判定結果のみ出力してコマンドは実行しない
 	if *checkFlag {
 		if isBusinessDay {
-			fmt.Println("It's a business day.")
+			fmt.Println("business day")
 			os.Exit(0)
 		} else {
-			fmt.Println("It's NOT a business day.")
+			fmt.Println("non-business day")
 			// 仕様通り、非営業日はコード10
 			os.Exit(10)
 		}
 	}
 
-	if !isBusinessDay {
-		if !*forceFlag {
-			// 非営業日であり、--forceも指定されていない場合はスキップ
+	// コマンド引数がない場合は判定モード
+	if len(cmdArgs) == 0 {
+		// 判定モード: 営業日なら0、非営業日なら10
+		if !isBusinessDay {
 			os.Exit(10)
 		}
+		os.Exit(0)
 	}
 
-	// コマンド引数がない場合はエラー
-	if len(cmdArgs) == 0 {
-		fmt.Fprintln(os.Stderr, "Error: No command specified. Usage: run-on-business-day [options] -- <shell command>")
-		os.Exit(1)
+	// コマンド指定時、非営業日はスキップ
+	if !isBusinessDay {
+		if !*forceFlag {
+			// 非営業日であり、--forceも指定されていない場合はスキップ（正常終了）
+			os.Exit(0)
+		}
 	}
 
 	// 作業ディレクトリへ移動 (オプションが指定されている場合のみ)

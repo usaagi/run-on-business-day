@@ -1,0 +1,41 @@
+name: Annual Release
+
+on:
+  schedule:
+    # 毎年3月10日 00:00 UTC
+    - cron: '0 0 10 3 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+
+      - name: Download latest holiday CSV
+        run: |
+          curl -L "https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv" \
+            -o syukujitsu.csv
+
+      - name: Generate syukujitsu_data.go
+        run: go run tools/csv2go/main.go
+
+      - name: Create annual release tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create tag: v2026.0, v2027.0, ...
+          TAG="v$(date +%Y).0"
+          git tag "$TAG" -m "Annual holiday CSV update for $(date +%Y)"
+          git push origin "$TAG"

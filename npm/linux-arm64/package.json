@@ -1,0 +1,16 @@
+{
+  "name": "@usaagi/run-on-business-day-linux-arm64",
+  "version": "0.0.0",
+  "description": "run-on-business-day binary for Linux ARM64",
+  "license": "MIT",
+  "author": "usaagi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usaagi/run-on-business-day"
+  },
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "bin": {
+    "run-on-business-day": "bin/run-on-business-day"
+  }
+}

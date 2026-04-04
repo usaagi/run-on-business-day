@@ -41,6 +41,9 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Install latest npm
+        run: npm install -g npm@latest
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -85,6 +88,10 @@ jobs:
     name: Create Release & Publish
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
 

@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -113,13 +114,11 @@ jobs:
           ls -la dist/
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish npm/linux-x64 --access public
-          npm publish npm/linux-arm64 --access public
-          npm publish npm/win32-x64 --access public
-          npm publish npm/run-on-business-day --access public
+          npm publish npm/linux-x64 --access public --provenance
+          npm publish npm/linux-arm64 --access public --provenance
+          npm publish npm/win32-x64 --access public --provenance
+          npm publish npm/run-on-business-day --access public --provenance
 
       - name: Create GitHub Release
         env:

@@ -20,17 +20,25 @@ jobs:
             arch: amd64
             runs-on: ubuntu-latest
             binary: run-on-business-day
+            npm-dir: linux-x64
           - os: linux
             arch: arm64
             runs-on: ubuntu-latest
             binary: run-on-business-day-arm64
+            npm-dir: linux-arm64
           - os: windows
             arch: amd64
             runs-on: ubuntu-latest
             binary: run-on-business-day.exe
+            npm-dir: win32-x64
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -53,11 +61,23 @@ jobs:
           mkdir -p dist
           go build -ldflags "-s -w" -o "dist/${{ matrix.binary }}" .
 
+      - name: Copy binary to npm directory
+        run: |
+          mkdir -p npm/${{ matrix.npm-dir }}/bin
+          cp dist/${{ matrix.binary }} npm/${{ matrix.npm-dir }}/bin/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: binary-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/${{ matrix.binary }}
+          retention-days: 1
+
+      - name: Upload npm package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.npm-dir }}
+          path: npm/${{ matrix.npm-dir }}/
           retention-days: 1
 
   release:
@@ -67,18 +87,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Organize binaries
+      - name: Organize binaries and npm packages
         run: |
           mkdir -p dist
           cp artifacts/binary-linux-amd64/run-on-business-day dist/
           cp artifacts/binary-linux-arm64/run-on-business-day-arm64 dist/
           cp artifacts/binary-windows-amd64/run-on-business-day.exe dist/
+
+          # Restore npm package structures with binaries
+          cp -r artifacts/npm-linux-x64 npm/linux-x64
+          cp -r artifacts/npm-linux-arm64 npm/linux-arm64
+          cp -r artifacts/npm-win32-x64 npm/win32-x64
+
           ls -la dist/
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish npm/linux-x64 --access public
+          npm publish npm/linux-arm64 --access public
+          npm publish npm/win32-x64 --access public
+          npm publish npm/run-on-business-day --access public
 
       - name: Create GitHub Release
         env:

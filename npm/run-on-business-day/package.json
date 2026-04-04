@@ -1,5 +1,5 @@
 {
-  "name": "usaagi-run-on-business-day",
+  "name": "@usaagi/run-on-business-day",
   "version": "0.0.0",
   "description": "Run commands only on Japanese business days",
   "license": "MIT",
@@ -12,8 +12,11 @@
     "run-on-business-day": "bin/run-on-business-day"
   },
   "optionalDependencies": {
-    "usaagi-run-on-business-day-linux-x64": "0.0.0",
-    "usaagi-run-on-business-day-linux-arm64": "0.0.0",
-    "usaagi-run-on-business-day-win32-x64": "0.0.0"
+    "@usaagi/run-on-business-day-linux-x64": "0.0.0",
+    "@usaagi/run-on-business-day-linux-arm64": "0.0.0",
+    "@usaagi/run-on-business-day-win32-x64": "0.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

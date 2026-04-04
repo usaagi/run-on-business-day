@@ -1,5 +1,5 @@
 {
-  "name": "usaagi-run-on-business-day-linux-arm64",
+  "name": "@usaagi/run-on-business-day-linux-arm64",
   "version": "0.0.0",
   "description": "run-on-business-day binary for Linux ARM64",
   "license": "MIT",
@@ -15,12 +15,9 @@
     "arm64"
   ],
   "bin": {
-    "publishConfig": {
-      "registry": "https://npm.pkg.github.com"
-    },
     "run-on-business-day": "bin/run-on-business-day"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   }
 }

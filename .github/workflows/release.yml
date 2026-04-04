@@ -129,9 +129,11 @@ jobs:
 
       - name: Publish to GitHub Packages
         run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
-          echo "@usaagi:registry=https://npm.pkg.github.com" >> ~/.npmrc
-          npm config set registry https://npm.pkg.github.com
+          cat > ~/.npmrc <<EOF
+          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
+          @usaagi:registry=https://npm.pkg.github.com
+          registry=https://npm.pkg.github.com
+          EOF
           cd npm/linux-x64 && npm publish && cd ../..
           cd npm/linux-arm64 && npm publish && cd ../..
           cd npm/win32-x64 && npm publish && cd ../..

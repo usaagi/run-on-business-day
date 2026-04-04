@@ -11,30 +11,8 @@ cron や systemd timer のような既存のスケジューラから呼び出さ
 - 年末年始対応 — 12月31日、および1月1日〜3日は無条件で休業日としてスキップします
 - JST固定 — 実行中のサーバーのタイムゾーン(UTC等)に関わらず、必ず `Asia/Tokyo` (日本時間) 基準で日付を判定します
 
-## 配置方法（インストール）
-
-依存関係のない単一のバイナリのため、実行環境に合わせてビルド済みの実行可能ファイルを、システムのパス（PATH）が通っているディレクトリに配置するだけで利用可能です。
-
-### Linux の場合
-
-`/usr/local/bin/` 等に直接配置し、実行権限を付与してください。
-
-```bash
-# 例: Linux amd64版をリネームして配置する場合
-sudo cp dist/run-on-business-day-linux /usr/local/bin/run-on-business-day
-sudo chmod +x /usr/local/bin/run-on-business-day
-```
-
-### Windows の場合
-
-`dist\run-on-business-day.exe` のファイルを任意のフォルダ（例: `C:\tools\` など）に配置し、Windowsの環境変数 `Path` にそのフォルダを追加してください。
-
-設定完了後、ターミナルで `run-on-business-day --help` を実行できれば配置完了です。
-
+## インストール
 ### npm / bun を用いた場合（GitHub から直接インストール）
-
-[Node.js](https://nodejs.org/) または [Bun](https://bun.sh/) がインストールされている環境では、GitHub から直接インストール可能です。
-
 **npm の場合：**
 ```bash
 npm install -g usaagi/run-on-business-day
@@ -45,9 +23,25 @@ npm install -g usaagi/run-on-business-day
 bun add -g usaagi/run-on-business-day
 ```
 
-このコマンドは GitHub Releases のバイナリを自動的にダウンロードしてインストールします。
+### GithubのReleaseからダウンロード
+依存関係のない単一のバイナリのため、実行環境に合わせてビルド済みの実行可能ファイルを、システムのパス（PATH）が通っているディレクトリに配置するだけで利用可能です。
 
-> 備考：自動的に実行環境（OS・CPU）に応じた適切なバイナリが選択されます。
+#### Linux の場合
+
+`/usr/local/bin/` 等に直接配置し、実行権限を付与してください。
+
+```bash
+# 例: Linux amd64版をリネームして配置する場合
+sudo cp run-on-business-day-linux /usr/local/bin/run-on-business-day
+sudo chmod +x /usr/local/bin/run-on-business-day
+```
+
+#### Windows の場合
+
+`run-on-business-day.exe` のファイルを任意のフォルダ（例: `C:\tools\` など）に配置し、Windowsの環境変数 `Path` にそのフォルダを追加してください。
+
+設定完了後、ターミナルで `run-on-business-day --help` を実行できれば配置完了です。
+
 
 ## 使い方
 
@@ -88,6 +82,16 @@ run-on-business-day -- sh -c 'backup.sh > out.log 2>&1'
 - `0` : 営業日
 - `10`: 非営業日（休業日・祝日・年末年始）
 
+**bash での利用例：**
+```bash
+# 営業日かどうかで処理を分岐
+if run-on-business-day; then
+  echo "営業日です"
+else
+  echo "非営業日です"
+fi
+```
+
 #### チェックモード（`run-on-business-day --check`）
 - `0` : 営業日（出力: `business day`）
 - `10`: 非営業日（出力: `non-business day`）
@@ -106,18 +110,18 @@ run-on-business-day -- sh -c 'backup.sh > out.log 2>&1'
 
 npm でインストール済みの場合：
 ```bash
-npm install -g usaagi/run-on-business-day@github:usaagi/run-on-business-day@latest
+npm install -g usaagi/run-on-business-day@latest
 ```
 
 Bun でインストール済みの場合：
 ```bash
-bun add -g usaagi/run-on-business-day@github:usaagi/run-on-business-day@latest
+bun add -g usaagi/run-on-business-day@latest
 ```
 
 毎年自動でリリースされるため、定期的に更新することで、常に最新の祝日データを利用できます。
 
 
-## 祝日データの更新とビルド方法
+## ビルド方法
 
 本ツールの祝日判定ロジックは、内閣府が公開する「国民の祝日」CSVデータを元に、コンパイル時（ビルド実行時）の年以降のデータのみを抽出してGoソースコードに自動的に埋め込んでいます。
 

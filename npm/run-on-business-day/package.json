@@ -12,9 +12,9 @@
     "run-on-business-day": "bin/run-on-business-day"
   },
   "optionalDependencies": {
-    "@usaagi/run-on-business-day-linux-x64": "0.0.0",
-    "@usaagi/run-on-business-day-linux-arm64": "0.0.0",
-    "@usaagi/run-on-business-day-win32-x64": "0.0.0"
+    "@usaagi/run-on-business-day-linux-x64": "*",
+    "@usaagi/run-on-business-day-linux-arm64": "*",
+    "@usaagi/run-on-business-day-win32-x64": "*"
   },
   "publishConfig": {
     "access": "public"

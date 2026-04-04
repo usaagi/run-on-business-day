@@ -101,7 +101,7 @@ jobs:
       - name: Update npm package versions
         run: |
           TAG="${{ github.ref_name }}"
-          VERSION="${TAG#v}.0"  # Remove 'v' prefix and add .0 for semver (v2027.0 -> 2027.0.0)
+          VERSION="${TAG#v}"  # Remove 'v' prefix (v2027.0.0 -> 2027.0.0)
 
           # Update main package
           npm version "$VERSION" --prefix npm/run-on-business-day --no-git-tag-version

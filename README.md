@@ -12,15 +12,16 @@ cron や systemd timer のような既存のスケジューラから呼び出さ
 - JST固定 — 実行中のサーバーのタイムゾーン(UTC等)に関わらず、必ず `Asia/Tokyo` (日本時間) 基準で日付を判定します
 
 ## インストール
-### npm / bun を用いた場合（GitHub から直接インストール）
-**npm の場合：**
+### pip / uv を用いた場合（PyPI からのインストール）
+
+**uv の場合：**
 ```bash
-npm install -g usaagi/run-on-business-day
+uv tool install run-on-business-day
 ```
 
-**bun の場合：**
+**pip の場合（pipx 経由）：**
 ```bash
-bun add -g usaagi/run-on-business-day
+pipx install run-on-business-day
 ```
 
 ### GithubのReleaseからダウンロード

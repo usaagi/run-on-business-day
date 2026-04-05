@@ -81,6 +81,12 @@ Classifier: Topic :: Utilities
 """
     (dist_info_dir / "METADATA").write_text(metadata.strip() + "\n")
 
+    # Generate entry_points.txt for console scripts
+    entry_points = """[console_scripts]
+run-on-business-day = run_on_business_day._runner:main
+"""
+    (dist_info_dir / "entry_points.txt").write_text(entry_points)
+
     # Create the wheel (zip file)
     dist_dir = pathlib.Path("dist")
     dist_dir.mkdir(exist_ok=True)

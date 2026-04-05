@@ -61,8 +61,8 @@ Tag: py3-none-{platform_tag}
 """
     (dist_info_dir / "WHEEL").write_text(wheel_metadata)
 
-    # Generate METADATA file
-    metadata = f"""Metadata-Version: 2.3
+    # Generate METADATA file (PyPI-compliant format)
+    metadata = f"""Metadata-Version: 2.1
 Name: run-on-business-day
 Version: {version}
 Summary: Run commands only on Japanese business days
@@ -70,6 +70,14 @@ Home-page: https://github.com/usaagi/run-on-business-day
 Author: usaagi
 License: MIT
 Requires-Python: >=3.8
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS
+Classifier: Environment :: Console
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Utilities
 """
     (dist_info_dir / "METADATA").write_text(metadata)
 

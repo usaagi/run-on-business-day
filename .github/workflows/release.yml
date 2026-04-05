@@ -93,6 +93,12 @@ jobs:
           cp artifacts/binary-windows-amd64/run-on-business-day.exe dist/
           ls -la dist/
 
+      - name: Update pyproject.toml version
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          sed -i "s/version = \"0.0.0\"/version = \"${VERSION}\"/" python/pyproject.toml
+
       - name: Build platform wheels
         run: |
           VERSION=${{ github.ref_name }}

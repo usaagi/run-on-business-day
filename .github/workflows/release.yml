@@ -132,6 +132,15 @@ jobs:
           rm -f dist/run-on-business-day-arm64
           rm -f dist/run-on-business-day.exe
 
+      - name: Verify wheel contents
+        run: |
+          python3 -m zipfile -l dist/run_on_business_day-*.whl | head -20
+          echo "---"
+          python3 -m zipfile -e dist/run_on_business_day-*-linux_x86_64.whl /tmp/wheel_test
+          cat /tmp/wheel_test/run_on_business_day-*/METADATA
+          echo "---"
+          ls -la /tmp/wheel_test/
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

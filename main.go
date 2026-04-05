@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var version = "dev" // 埋め込まれたバージョン (ビルド時に -ldflags "-X main.version=..." で上書きされる)
+
 // IsBusinessDay は指定された日時(t)が日本の営業日かどうかを判定します
 // 非営業日: 土日、祝日（syukujitsuMap）、および 年末年始（12-31, 01-01, 01-02, 01-03）
 func IsBusinessDay(t time.Time) bool {
@@ -39,19 +41,22 @@ func main() {
 	// 引数解析
 	forceFlag := flag.Bool("force", false, "営業日判定を無視して常に実行する")
 	checkFlag := flag.Bool("check", false, "営業日かどうかの判定のみを行い、コマンドは実行しない")
+	versionFlag := flag.Bool("version", false, "バージョンを表示する")
 	var workingDir string
 	flag.StringVar(&workingDir, "C", "", "コマンド実行前に指定したディレクトリに移動する (short)")
 	flag.StringVar(&workingDir, "cwd", "", "コマンド実行前に指定したディレクトリに移動する")
 	flag.Parse()
 
+	// --version フラグの処理
+	if *versionFlag {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
 	cmdArgs := flag.Args()
 
-	// 強制的に JST (Asia/Tokyo) としてタイムゾーンをロードし、現在時刻を取得
-	jst, err := time.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to load Asia/Tokyo timezone: %v\n", err)
-		os.Exit(1)
-	}
+	// JST (UTC+9) として現在時刻を取得
+	jst := time.FixedZone("JST", 9*60*60)
 	nowJST := time.Now().In(jst)
 
 	// 営業日判定とスキップ処理

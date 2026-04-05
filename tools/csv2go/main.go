@@ -14,9 +14,9 @@ import (
 
 func main() {
 	// 元となるUTF-8のCSVファイル
-	csvFile := "syukujitsu.csv"
+	csvFile := "../../syukujitsu.csv"
 	// 出力先の自動生成Goソースファイル
-	outFile := "syukujitsu_data.go"
+	outFile := "../../syukujitsu_data.go"
 
 	f, err := os.Open(csvFile)
 	if err != nil {

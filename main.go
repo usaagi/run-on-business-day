@@ -58,6 +58,7 @@ func main() {
 	// JST (UTC+9) として現在時刻を取得
 	jst := time.FixedZone("JST", 9*60*60)
 	nowJST := time.Now().In(jst)
+	var err error
 
 	// 営業日判定とスキップ処理
 	isBusinessDay := IsBusinessDay(nowJST)

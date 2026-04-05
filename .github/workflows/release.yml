@@ -87,11 +87,15 @@ jobs:
 
       - name: Organize binaries
         run: |
-          mkdir -p dist
+          mkdir -p dist binaries
           cp artifacts/binary-linux-amd64/run-on-business-day dist/
           cp artifacts/binary-linux-arm64/run-on-business-day-arm64 dist/
           cp artifacts/binary-windows-amd64/run-on-business-day.exe dist/
-          ls -la dist/
+          # Also keep copies for GitHub Release
+          cp artifacts/binary-linux-amd64/run-on-business-day binaries/
+          cp artifacts/binary-linux-arm64/run-on-business-day-arm64 binaries/
+          cp artifacts/binary-windows-amd64/run-on-business-day.exe binaries/
+          ls -la dist/ binaries/
 
       - name: Update pyproject.toml version
         run: |
@@ -157,9 +161,9 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           gh release create "$TAG" \
-            dist/run-on-business-day \
-            dist/run-on-business-day-arm64 \
-            dist/run-on-business-day.exe \
+            binaries/run-on-business-day \
+            binaries/run-on-business-day-arm64 \
+            binaries/run-on-business-day.exe \
             --title "Release $TAG" \
             --notes "Automated build for $TAG"
 

@@ -33,10 +33,12 @@ def main():
 def build_wheel(version, platform_tag, wheel_build_dir):
     wheel_build_path = pathlib.Path(wheel_build_dir)
     pkg_dir = wheel_build_path / "run_on_business_day"
-    bin_dir = pkg_dir / "_bin"
+    internal_bin_dir = pkg_dir / "_bin"
+    external_bin_dir = wheel_build_path / "bin"
 
     # Create directories if they don't exist
-    bin_dir.mkdir(parents=True, exist_ok=True)
+    internal_bin_dir.mkdir(parents=True, exist_ok=True)
+    external_bin_dir.mkdir(parents=True, exist_ok=True)
 
     # Copy Python files
     src_dir = pathlib.Path(__file__).parent / "run_on_business_day"
@@ -45,8 +47,17 @@ def build_wheel(version, platform_tag, wheel_build_dir):
         dst = pkg_dir / py_file
         dst.write_text(src.read_text())
 
-    # Binaries should already be in _bin_dir by CI
+    # Move binaries from _bin to wheel's top-level bin/ directory for install
     # (This script assumes binaries are pre-placed at wheel_build_dir/run_on_business_day/_bin/)
+    for binary_file in internal_bin_dir.glob("*"):
+        if binary_file.is_file():
+            dst = external_bin_dir / binary_file.name
+            dst.write_bytes(binary_file.read_bytes())
+            # Preserve executable permissions on Unix
+            import stat
+            st = binary_file.stat()
+            if st.st_mode & stat.S_IXUSR:
+                dst.chmod(dst.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     # Create .dist-info directory
     dist_info_name = f"run_on_business_day-{version}.dist-info"
@@ -81,11 +92,8 @@ Classifier: Topic :: Utilities
 """
     (dist_info_dir / "METADATA").write_text(metadata.strip() + "\n")
 
-    # Generate entry_points.txt for console scripts
-    entry_points = """[console_scripts]
-run-on-business-day = run_on_business_day._runner:main
-"""
-    (dist_info_dir / "entry_points.txt").write_text(entry_points)
+    # No entry_points.txt needed - binaries are in wheel's top-level bin/ directory
+    # and will be installed to ~/.local/bin/ automatically by pip/uv
 
     # Create the wheel (zip file)
     dist_dir = pathlib.Path("dist")
@@ -113,8 +121,8 @@ run-on-business-day = run_on_business_day._runner:main
 
                 # ZipInfo を使ってパーミッション情報を保持
                 zinfo = zipfile.ZipInfo(arcname)
-                # _bin ディレクトリ内のバイナリは常に実行権限を付与
-                if "_bin" in arcname:
+                # bin/ ディレクトリ内のバイナリは常に実行権限を付与
+                if "bin/" in arcname or "_bin/" in arcname:
                     zinfo.external_attr = (0o755 << 16)
                 with open(file_path, "rb") as f:
                     whl.writestr(zinfo, f.read())

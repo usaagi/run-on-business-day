@@ -111,7 +111,13 @@ run-on-business-day = run_on_business_day._runner:main
                     hash_b64 = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
                     records.append(f"{arcname},sha256={hash_b64},{len(content)}")
 
-                whl.write(file_path, arcname)
+                # ZipInfo を使ってパーミッション情報を保持
+                zinfo = zipfile.ZipInfo(arcname)
+                if file_path.is_file() and file_path.stat().st_mode & 0o111:
+                    # Unix 実行権限がある場合、755 として設定
+                    zinfo.external_attr = (0o755 << 16)
+                with open(file_path, "rb") as f:
+                    whl.writestr(zinfo, f.read())
 
         # Add RECORD file (with no hash for itself)
         record_content = "\n".join(records) + f"\n{dist_info_name}/RECORD,,\n"

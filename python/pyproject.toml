@@ -13,8 +13,8 @@ authors = [
 ]
 repository = "https://github.com/usaagi/run-on-business-day"
 
-# Binaries are deployed directly from wheel's bin/ directory
-# No entry_points needed - native executables are installed to ~/.local/bin/
+[project.scripts]
+run-on-business-day = "run_on_business_day._runner:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["run_on_business_day"]

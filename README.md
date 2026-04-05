@@ -12,17 +12,6 @@ cron や systemd timer のような既存のスケジューラから呼び出さ
 - JST固定 — 実行中のサーバーのタイムゾーン(UTC等)に関わらず、必ず `Asia/Tokyo` (日本時間) 基準で日付を判定します
 
 ## インストール
-### pip / uv を用いた場合（PyPI からのインストール）
-
-**uv の場合：**
-```bash
-uv tool install run-on-business-day
-```
-
-**pip の場合（pipx 経由）：**
-```bash
-pipx install run-on-business-day
-```
 
 ### GithubのReleaseからダウンロード
 依存関係のない単一のバイナリのため、実行環境に合わせてビルド済みの実行可能ファイルを、システムのパス（PATH）が通っているディレクトリに配置するだけで利用可能です。
@@ -41,7 +30,15 @@ sudo chmod +x /usr/local/bin/run-on-business-day
 
 `run-on-business-day.exe` のファイルを任意のフォルダ（例: `C:\tools\` など）に配置し、Windowsの環境変数 `Path` にそのフォルダを追加してください。
 
-設定完了後、ターミナルで `run-on-business-day --help` を実行できれば配置完了です。
+### uv を用いた場合（PyPI からのインストール）
+```bash
+uv tool install run-on-business-day
+```
+
+linuxの場合は `/home/xxx/.local/bin/run-on-business-day` にインストールされます。
+
+
+最後にターミナルで `run-on-business-day --check` を実行できれば配置完了です。
 
 
 ## 使い方
@@ -75,7 +72,7 @@ run-on-business-day -- sh -c 'backup.sh > out.log 2>&1'
 ### 終了コード
 
 #### 実行モード（コマンド指定時: `run-on-business-day -- <command>`）
-- `0` : 営業日でコマンド実行成功、または非営業日でスキップ
+- `0` : 営業日でコマンド実行成功、または非営業日でスキップしても成功扱いです。
 - `1` : 内部エラー（引数不足、ディレクトリ変更失敗、コマンド起動失敗など）
 - `その他`: 指定されたコマンドの終了コードをそのまま返します（営業日に実行された場合のみ）
 
@@ -101,25 +98,51 @@ fi
 
 ### 祝日データの自動更新
 
-本ツールは毎年3月10日に自動で新しいバージョンがリリースされます。例えば、2027年3月10日には `v2027.0.0` が自動で公開されます。
+本ツールは毎年3月10日に自動で新しいバージョンがリリースされます。例えば、2027年3月10日には `v2027.0` が自動で公開されます。
 
 バージョンに含まれる祝日データの範囲:
-- `v2027.0.0` は `1955年1月1日` 〜 `2027年12月31日` までの祝日データを含みます
+- `v2027.0` は `1955年1月1日` 〜 `2027年12月31日` までの祝日データを含みます
 - 各バージョンは、1955年からそのバージョンの年の12月31日までの祝日データが埋め込まれています
 
-**インストール済みの場合の更新方法:**
-
-npm でインストール済みの場合：
-```bash
-npm install -g usaagi/run-on-business-day@latest
-```
-
-Bun でインストール済みの場合：
-```bash
-bun add -g usaagi/run-on-business-day@latest
-```
-
 毎年自動でリリースされるため、定期的に更新することで、常に最新の祝日データを利用できます。
+
+
+## systemd での利用
+
+本ツールは cron や systemd timer などのスケジューラから呼び出されることを想定しています。systemd の `.service` ファイルや Podman Quadlet の `.container` ファイルで利用する際の設定例を以下に示します。
+
+ExecCondition は終了コード `0` なら ExecStart を実行します。`1-254` で実行しませんがエラーにはなりません。`255` のみがエラーになります。
+
+### Podman Quadlet (.container ファイル)
+
+Podman Quadlet で定期実行するコンテナの起動前に営業日チェックを行う場合(.container)：
+
+```ini
+[Service]
+ExecCondition=/usr/local/bin/run-on-business-day
+```
+
+営業日（exit code 0）のときのみ、その後の自動生成される `ExecStart` でコンテナが起動します。非営業日（exit code 10）のときはコンテナ起動がスキップされます。
+
+### systemd service (.service ファイル)
+
+systemd service でコマンドを実行する場合(.service)：
+
+```ini
+[Service]
+WorkingDirectory=/home/xxx/myapp
+ExecCondition=/usr/local/bin/run-on-business-day
+ExecStart=uv run main.py
+```
+
+又は
+
+```ini
+[Service]
+ExecStart=/usr/local/bin/run-on-business-day -C /home/xxx/myapp -- uv run main.py
+```
+
+営業日のみ指定されたコマンドを実行します。非営業日は何もせずに終了します。
 
 
 ## ビルド方法

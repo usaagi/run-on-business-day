@@ -120,6 +120,12 @@ jobs:
             python python/build_wheel.py "${VERSION}" "${PLATFORM}" "${WHEEL_DIR}"
           done
 
+      - name: Remove binaries from dist
+        run: |
+          rm -f dist/run-on-business-day
+          rm -f dist/run-on-business-day-arm64
+          rm -f dist/run-on-business-day.exe
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

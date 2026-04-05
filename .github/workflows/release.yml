@@ -21,23 +21,17 @@ jobs:
             arch: amd64
             runs-on: ubuntu-latest
             binary: run-on-business-day
-            npm-dir: linux-x64
           - os: linux
             arch: arm64
             runs-on: ubuntu-latest
             binary: run-on-business-day-arm64
-            npm-dir: linux-arm64
           - os: windows
             arch: amd64
             runs-on: ubuntu-latest
             binary: run-on-business-day.exe
-            npm-dir: win32-x64
 
     steps:
       - uses: actions/checkout@v5
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -62,11 +56,6 @@ jobs:
           VERSION=${VERSION#v}
           go build -ldflags "-s -w -X main.version=${VERSION}" -o "dist/${{ matrix.binary }}" .
 
-      - name: Copy binary to npm directory
-        run: |
-          mkdir -p npm/${{ matrix.npm-dir }}/bin
-          cp dist/${{ matrix.binary }} npm/${{ matrix.npm-dir }}/bin/
-
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
@@ -74,17 +63,11 @@ jobs:
           path: dist/${{ matrix.binary }}
           retention-days: 1
 
-      - name: Upload npm package artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: npm-${{ matrix.npm-dir }}
-          path: npm/${{ matrix.npm-dir }}/
-          retention-days: 1
-
   release:
     name: Create Release & Publish
     needs: build
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       contents: write
       id-token: write
@@ -92,53 +75,55 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Clear npm config
-        run: |
-          rm -f ~/.npmrc
-          npm config set registry https://registry.npmjs.org/
+          python-version: '3.x'
 
       - name: Download all artifacts
         uses: actions/download-artifact@v5
         with:
           path: artifacts
 
-      - name: Organize binaries and npm packages
+      - name: Organize binaries
         run: |
           mkdir -p dist
           cp artifacts/binary-linux-amd64/run-on-business-day dist/
           cp artifacts/binary-linux-arm64/run-on-business-day-arm64 dist/
           cp artifacts/binary-windows-amd64/run-on-business-day.exe dist/
-
-          # Restore npm package structures with binaries
-          cp -r artifacts/npm-linux-x64/* npm/linux-x64/
-          cp -r artifacts/npm-linux-arm64/* npm/linux-arm64/
-          cp -r artifacts/npm-win32-x64/* npm/win32-x64/
-
           ls -la dist/
-          ls -la npm/linux-x64/
 
-      - name: Update version in npm packages
+      - name: Build platform wheels
         run: |
           VERSION=${{ github.ref_name }}
           VERSION=${VERSION#v}
 
-          cd npm/linux-x64 && npm version ${VERSION} --no-git-tag-version && cd ../..
-          cd npm/linux-arm64 && npm version ${VERSION} --no-git-tag-version && cd ../..
-          cd npm/win32-x64 && npm version ${VERSION} --no-git-tag-version && cd ../..
-          cd npm/run-on-business-day && npm version ${VERSION} --no-git-tag-version && cd ../..
+          # Build wheels for each platform
+          for PLATFORM in linux_x86_64 linux_aarch64 win_amd64; do
+            WHEEL_DIR="wheel_build/${PLATFORM}"
+            PKG_DIR="${WHEEL_DIR}/run_on_business_day"
+            BIN_DIR="${PKG_DIR}/_bin"
+            mkdir -p "${BIN_DIR}"
 
-      - name: Publish to npm
-        run: |
-          npm publish ./npm/linux-x64 --access public --provenance
-          npm publish ./npm/linux-arm64 --access public --provenance
-          npm publish ./npm/win32-x64 --access public --provenance
-          npm publish ./npm/run-on-business-day --access public --provenance
+            # Copy Python source files
+            cp python/run_on_business_day/_runner.py "${PKG_DIR}/"
+            cp python/run_on_business_day/__init__.py "${PKG_DIR}/"
+
+            # Copy binaries
+            case "${PLATFORM}" in
+              linux_x86_64)  cp dist/run-on-business-day "${BIN_DIR}/" ;;
+              linux_aarch64) cp dist/run-on-business-day-arm64 "${BIN_DIR}/run-on-business-day-arm64" ;;
+              win_amd64)     cp dist/run-on-business-day.exe "${BIN_DIR}/" ;;
+            esac
+
+            # Build the wheel
+            python python/build_wheel.py "${VERSION}" "${PLATFORM}" "${WHEEL_DIR}"
+          done
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
 
       - name: Create GitHub Release
         env:

@@ -34,12 +34,10 @@ jobs:
             npm-dir: win32-x64
 
     steps:
-      - uses: actions/checkout@v4.2.0
+      - uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4.1.0
-        with:
-          node-version: '24'
+        uses: actions/setup-node@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -60,7 +58,9 @@ jobs:
           GOARCH: ${{ matrix.arch }}
         run: |
           mkdir -p dist
-          go build -ldflags "-s -w" -o "dist/${{ matrix.binary }}" .
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          go build -ldflags "-s -w -X main.version=${VERSION}" -o "dist/${{ matrix.binary }}" .
 
       - name: Copy binary to npm directory
         run: |
@@ -68,14 +68,14 @@ jobs:
           cp dist/${{ matrix.binary }} npm/${{ matrix.npm-dir }}/bin/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4.5.0
+        uses: actions/upload-artifact@v5
         with:
           name: binary-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/${{ matrix.binary }}
           retention-days: 1
 
       - name: Upload npm package artifact
-        uses: actions/upload-artifact@v4.5.0
+        uses: actions/upload-artifact@v5
         with:
           name: npm-${{ matrix.npm-dir }}
           path: npm/${{ matrix.npm-dir }}/
@@ -90,10 +90,10 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4.2.0
+      - uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v5
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
@@ -104,7 +104,7 @@ jobs:
           npm config set registry https://registry.npmjs.org/
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4.2.0
+        uses: actions/download-artifact@v5
         with:
           path: artifacts
 

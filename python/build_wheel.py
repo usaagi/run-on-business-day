@@ -113,8 +113,8 @@ run-on-business-day = run_on_business_day._runner:main
 
                 # ZipInfo を使ってパーミッション情報を保持
                 zinfo = zipfile.ZipInfo(arcname)
-                if file_path.is_file() and file_path.stat().st_mode & 0o111:
-                    # Unix 実行権限がある場合、755 として設定
+                # _bin ディレクトリ内のバイナリは常に実行権限を付与
+                if "_bin" in arcname:
                     zinfo.external_attr = (0o755 << 16)
                 with open(file_path, "rb") as f:
                     whl.writestr(zinfo, f.read())

@@ -105,7 +105,13 @@ jobs:
           VERSION=${VERSION#v}
 
           # Build wheels for each platform
-          for PLATFORM in linux_x86_64 linux_aarch64 win_amd64; do
+          declare -A PLATFORM_MAP=(
+            [manylinux2014_x86_64]="run-on-business-day"
+            [manylinux2014_aarch64]="run-on-business-day-arm64"
+            [win_amd64]="run-on-business-day.exe"
+          )
+
+          for PLATFORM in manylinux2014_x86_64 manylinux2014_aarch64 win_amd64; do
             WHEEL_DIR="wheel_build/${PLATFORM}"
             PKG_DIR="${WHEEL_DIR}/run_on_business_day"
             BIN_DIR="${PKG_DIR}/_bin"
@@ -116,11 +122,7 @@ jobs:
             cp python/run_on_business_day/__init__.py "${PKG_DIR}/"
 
             # Copy binaries
-            case "${PLATFORM}" in
-              linux_x86_64)  cp dist/run-on-business-day "${BIN_DIR}/" ;;
-              linux_aarch64) cp dist/run-on-business-day-arm64 "${BIN_DIR}/run-on-business-day-arm64" ;;
-              win_amd64)     cp dist/run-on-business-day.exe "${BIN_DIR}/" ;;
-            esac
+            cp "dist/${PLATFORM_MAP[$PLATFORM]}" "${BIN_DIR}/"
 
             # Build the wheel
             python python/build_wheel.py "${VERSION}" "${PLATFORM}" "${WHEEL_DIR}"

@@ -19,7 +19,7 @@ download-csv:
 # CSVからGoの祝日ソースコード(`syukujitsu_data.go`)を生成する
 generate:
     @echo "=> CSVから祝日データを抽出し、syukujitsu_data.goを生成しています..."
-    Push-Location tools/csv2go; go run main.go; Pop-Location
+    go run tools/csv2go/main.go
 
 # すべての自動テストを実行する
 test: generate

@@ -79,7 +79,7 @@ Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.8
 Classifier: Topic :: Utilities
 """
-    (dist_info_dir / "METADATA").write_text(metadata)
+    (dist_info_dir / "METADATA").write_text(metadata.strip() + "\n")
 
     # Create the wheel (zip file)
     dist_dir = pathlib.Path("dist")
@@ -97,7 +97,7 @@ Classifier: Topic :: Utilities
         for root, dirs, files in os.walk(wheel_build_path):
             for file in files:
                 file_path = pathlib.Path(root) / file
-                arcname = file_path.relative_to(wheel_build_path)
+                arcname = str(file_path.relative_to(wheel_build_path)).replace("\\", "/")
 
                 with open(file_path, "rb") as f:
                     content = f.read()

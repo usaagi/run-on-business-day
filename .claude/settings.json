@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; [[ \"$f\" == *.go ]] && gofmt -w \"$f\" 2>/dev/null || true; }",
+            "statusMessage": "Formatting Go code with gofmt",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; [[ \"$f\" == *.go ]] && golangci-lint run --fix \"$f\" 2>/dev/null || true; }",
+            "statusMessage": "Linting with golangci-lint",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

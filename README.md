@@ -30,15 +30,21 @@ sudo chmod +x /usr/local/bin/run-on-business-day
 
 `run-on-business-day.exe` のファイルを任意のフォルダ（例: `C:\tools\` など）に配置し、Windowsの環境変数 `Path` にそのフォルダを追加してください。
 
-### uv を用いた場合（PyPI からのインストール）
+最後にターミナルで `run-on-business-day --check` を実行できれば配置完了です。
+
+
+## アップグレード
+
+`upgrade` サブコマンドで、GitHub Releases から最新バージョンに自動更新できます。
+
 ```bash
-uv tool install run-on-business-day
+run-on-business-day upgrade
 ```
 
-linuxの場合は `/home/xxx/.local/bin/run-on-business-day` にインストールされます。
-
-
-最後にターミナルで `run-on-business-day --check` を実行できれば配置完了です。
+- 現在のバージョンと最新リリースを比較し、同じであれば何もせず終了します
+- バイナリはユーザーがリネームしていても、実行ファイルと同じ名前・パスに上書きされます
+- 更新後は古いバイナリを削除し、新しいバイナリのみが残ります
+- `/usr/local/bin/` など書き込み権限が必要な場所に配置している場合は `sudo run-on-business-day upgrade` で実行してください
 
 
 ## 使い方

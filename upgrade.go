@@ -136,6 +136,7 @@ func runUpgrade() {
 	if err := os.Rename(execPath, oldPath); err != nil {
 		os.Remove(tmpPath)
 		fmt.Fprintf(os.Stderr, "Error: 旧バイナリのリネームに失敗しました: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Hint: 書き込み権限が必要な場所に配置している場合は sudo で実行してください\n")
 		os.Exit(1)
 	}
 

@@ -45,6 +45,15 @@ func main() {
 	var workingDir string
 	flag.StringVar(&workingDir, "C", "", "コマンド実行前に指定したディレクトリに移動する (short)")
 	flag.StringVar(&workingDir, "cwd", "", "コマンド実行前に指定したディレクトリに移動する")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] [command [args...]]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Subcommands:\n")
+		fmt.Fprintf(os.Stderr, "  upgrade\tGitHub Releases から最新バージョンに自己更新する\n\n")
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	// --version フラグの処理

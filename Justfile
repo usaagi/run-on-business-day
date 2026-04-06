@@ -33,17 +33,17 @@ test: generate
 # Linux用 (一般的なamd64アーキテクチャ・WSL用) にビルドする
 build-linux: generate
     @echo "=> Linux (amd64/WSL) 向けにビルドしています..."
-    $env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags "-s -w" -o dist/run-on-business-day .
+    $env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags "-s -w" -o dist/run-on-business-day-linux-amd64 .
 
 # Linux用 (ARM64: Raspberry Pi, AWS Gravitonなど) にビルドする
 build-linux-arm: generate
     @echo "=> Linux (arm64) 向けにビルドしています..."
-    $env:GOOS="linux"; $env:GOARCH="arm64"; go build -ldflags "-s -w" -o dist/run-on-business-day-arm64 .
+    $env:GOOS="linux"; $env:GOARCH="arm64"; go build -ldflags "-s -w" -o dist/run-on-business-day-linux-arm64 .
 
 # Windows用 (amd64) にビルドする
 build-windows: generate
     @echo "=> Windows (amd64) 向けにビルドしています..."
-    $env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags "-s -w" -o dist/run-on-business-day.exe .
+    $env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags "-s -w" -o dist/run-on-business-day-windows-amd64.exe .
 
 # すべてのプラットフォーム向けに一括でビルドする
 build-all: build-linux build-linux-arm build-windows

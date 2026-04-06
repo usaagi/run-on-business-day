@@ -8,27 +8,23 @@ on:
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
   build:
     name: Build for ${{ matrix.os }}-${{ matrix.arch }}
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           - os: linux
             arch: amd64
-            runs-on: ubuntu-latest
-            binary: run-on-business-day
+            binary: run-on-business-day-linux-amd64
           - os: linux
             arch: arm64
-            runs-on: ubuntu-latest
-            binary: run-on-business-day-arm64
+            binary: run-on-business-day-linux-arm64
           - os: windows
             arch: amd64
-            runs-on: ubuntu-latest
-            binary: run-on-business-day.exe
+            binary: run-on-business-day-windows-amd64.exe
 
     steps:
       - uses: actions/checkout@v5
@@ -64,96 +60,15 @@ jobs:
           retention-days: 1
 
   release:
-    name: Create Release & Publish
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      contents: write
-      id-token: write
 
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
       - name: Download all artifacts
         uses: actions/download-artifact@v5
         with:
           path: artifacts
-
-      - name: Organize binaries
-        run: |
-          mkdir -p dist binaries
-          cp artifacts/binary-linux-amd64/run-on-business-day dist/
-          cp artifacts/binary-linux-arm64/run-on-business-day-arm64 dist/
-          cp artifacts/binary-windows-amd64/run-on-business-day.exe dist/
-          # Also keep copies for GitHub Release
-          cp artifacts/binary-linux-amd64/run-on-business-day binaries/
-          cp artifacts/binary-linux-arm64/run-on-business-day-arm64 binaries/
-          cp artifacts/binary-windows-amd64/run-on-business-day.exe binaries/
-          ls -la dist/ binaries/
-
-      - name: Update pyproject.toml version
-        run: |
-          VERSION=${{ github.ref_name }}
-          VERSION=${VERSION#v}
-          sed -i "s/version = \"0.0.0\"/version = \"${VERSION}\"/" python/pyproject.toml
-
-      - name: Build platform wheels
-        run: |
-          VERSION=${{ github.ref_name }}
-          VERSION=${VERSION#v}
-
-          # Build wheels for each platform
-          declare -A PLATFORM_MAP=(
-            [manylinux2014_x86_64]="run-on-business-day"
-            [manylinux2014_aarch64]="run-on-business-day-arm64"
-            [win_amd64]="run-on-business-day.exe"
-          )
-
-          for PLATFORM in manylinux2014_x86_64 manylinux2014_aarch64 win_amd64; do
-            WHEEL_DIR="wheel_build/${PLATFORM}"
-            PKG_DIR="${WHEEL_DIR}/run_on_business_day"
-            BIN_DIR="${PKG_DIR}/_bin"
-            mkdir -p "${BIN_DIR}"
-
-            # Copy Python source files
-            cp python/run_on_business_day/_runner.py "${PKG_DIR}/"
-            cp python/run_on_business_day/__init__.py "${PKG_DIR}/"
-
-            # Copy binaries
-            cp "dist/${PLATFORM_MAP[$PLATFORM]}" "${BIN_DIR}/"
-
-            # Build the wheel
-            python python/build_wheel.py "${VERSION}" "${PLATFORM}" "${WHEEL_DIR}"
-          done
-
-      - name: Remove binaries from dist
-        run: |
-          rm -f dist/run-on-business-day
-          rm -f dist/run-on-business-day-arm64
-          rm -f dist/run-on-business-day.exe
-
-      - name: Verify wheel contents
-        run: |
-          ls -la dist/*.whl | head -10
-          echo "---"
-          python3 -m zipfile -l dist/run_on_business_day-*-manylinux2014_x86_64.whl | head -20
-          echo "---"
-          python3 -m zipfile -e dist/run_on_business_day-*-manylinux2014_x86_64.whl /tmp/wheel_test
-          cat /tmp/wheel_test/run_on_business_day-*/METADATA
-          echo "---"
-          ls -la /tmp/wheel_test/
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
-          verbose: true
 
       - name: Create GitHub Release
         env:
@@ -161,9 +76,8 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           gh release create "$TAG" \
-            binaries/run-on-business-day \
-            binaries/run-on-business-day-arm64 \
-            binaries/run-on-business-day.exe \
+            artifacts/binary-linux-amd64/run-on-business-day-linux-amd64 \
+            artifacts/binary-linux-arm64/run-on-business-day-linux-arm64 \
+            artifacts/binary-windows-amd64/run-on-business-day-windows-amd64.exe \
             --title "Release $TAG" \
             --notes "Automated build for $TAG"
-

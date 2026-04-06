@@ -55,6 +55,12 @@ func main() {
 
 	cmdArgs := flag.Args()
 
+	// upgrade サブコマンド
+	if len(cmdArgs) > 0 && cmdArgs[0] == "upgrade" {
+		runUpgrade()
+		return
+	}
+
 	// JST (UTC+9) として現在時刻を取得
 	jst := time.FixedZone("JST", 9*60*60)
 	nowJST := time.Now().In(jst)

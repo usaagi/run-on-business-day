@@ -105,7 +105,7 @@ func runUpgrade() {
 	}
 
 	dir := filepath.Dir(execPath)
-	tmpFile, err := os.CreateTemp(dir, ".run-on-business-day-upgrade-*")
+	tmpFile, err := os.CreateTemp(dir, ".run-on-business-day-update-*")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: 一時ファイルの作成に失敗しました: %v\n", err)
 		os.Exit(1)
@@ -151,5 +151,5 @@ func runUpgrade() {
 	// .old を削除 (失敗しても問題ない)
 	os.Remove(oldPath)
 
-	fmt.Printf("アップグレード完了: %s → %s\n", version, latestVersion)
+	fmt.Printf("アップデート完了: %s → %s\n", version, latestVersion)
 }

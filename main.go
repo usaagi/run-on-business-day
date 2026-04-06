@@ -49,7 +49,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] [command [args...]]\n\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Subcommands:\n")
-		fmt.Fprintf(os.Stderr, "  upgrade\tGitHub Releases から最新バージョンに自己更新する\n\n")
+		fmt.Fprintf(os.Stderr, "  update\tGitHub Releases から最新バージョンに自己更新する\n\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		flag.PrintDefaults()
 	}
@@ -64,8 +64,8 @@ func main() {
 
 	cmdArgs := flag.Args()
 
-	// upgrade サブコマンド
-	if len(cmdArgs) > 0 && cmdArgs[0] == "upgrade" {
+	// update サブコマンド
+	if len(cmdArgs) > 0 && cmdArgs[0] == "update" {
 		runUpgrade()
 		return
 	}

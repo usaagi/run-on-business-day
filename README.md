@@ -41,18 +41,18 @@ curl -fsSL https://github.com/usaagi/run-on-business-day/releases/latest/downloa
 最後にターミナルで `run-on-business-day --check` を実行できれば配置完了です。
 
 
-## アップグレード
+## アップデート
 
-`upgrade` サブコマンドで、GitHub Releases から最新バージョンに自動更新できます。
+`update` サブコマンドで、GitHub Releases から最新バージョンに自動更新できます。
 
 ```bash
-run-on-business-day upgrade
+run-on-business-day update
 ```
 
 - 現在のバージョンと最新リリースを比較し、同じであれば何もせず終了します
 - バイナリはユーザーがリネームしていても、実行ファイルと同じ名前・パスに上書きされます
 - 更新後は古いバイナリを削除し、新しいバイナリのみが残ります
-- `/usr/local/bin/` など書き込み権限が必要な場所に配置している場合は `sudo run-on-business-day upgrade` で実行してください
+- `/usr/local/bin/` など書き込み権限が必要な場所に配置している場合は `sudo run-on-business-day update` で実行してください
 
 
 ## 使い方

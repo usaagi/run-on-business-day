@@ -1,59 +1,125 @@
 package main
 
 import (
+	"bytes"
+	"flag"
 	"testing"
-	"time"
 )
 
-// stringToTime はテスト用のユーティリティ関数（JSTとしてパース）
-func stringToTime(t *testing.T, dateStr string) time.Time {
-	jst, err := time.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		t.Fatalf("Asia/Tokyo のロードに失敗: %v", err)
-	}
-	// 年-月-日 のみ指定し時刻は0時とする
-	parsed, err := time.ParseInLocation("2006-01-02", dateStr, jst)
-	if err != nil {
-		t.Fatalf("日時のパースに失敗: %v", err)
-	}
-	return parsed
+func TestParseOptions(t *testing.T) {
+	t.Run("--check", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{"--check"}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !opts.check {
+			t.Errorf("check = false, want true")
+		}
+	})
+
+	t.Run("--force と -- 以降のコマンド引数", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{"--force", "--", "echo", "hi"}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !opts.force {
+			t.Errorf("force = false, want true")
+		}
+		want := []string{"echo", "hi"}
+		if len(opts.cmdArgs) != len(want) {
+			t.Fatalf("cmdArgs = %v, want %v", opts.cmdArgs, want)
+		}
+		for i := range want {
+			if opts.cmdArgs[i] != want[i] {
+				t.Errorf("cmdArgs[%d] = %q, want %q", i, opts.cmdArgs[i], want[i])
+			}
+		}
+	})
+
+	t.Run("-C で workingDir 指定", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{"-C", "/tmp", "--", "ls"}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if opts.workingDir != "/tmp" {
+			t.Errorf("workingDir = %q, want %q", opts.workingDir, "/tmp")
+		}
+	})
+
+	t.Run("--cwd で workingDir 指定", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{"--cwd", "/tmp"}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if opts.workingDir != "/tmp" {
+			t.Errorf("workingDir = %q, want %q", opts.workingDir, "/tmp")
+		}
+	})
+
+	t.Run("--version", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{"--version"}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !opts.showVersion {
+			t.Errorf("showVersion = false, want true")
+		}
+	})
+
+	t.Run("不正なフラグはエラーを返す", func(t *testing.T) {
+		var stderr bytes.Buffer
+		_, err := parseOptions([]string{"--bogus"}, &stderr)
+		if err == nil {
+			t.Fatalf("expected error, got nil")
+		}
+	})
+
+	t.Run("--help は flag.ErrHelp を返す", func(t *testing.T) {
+		var stderr bytes.Buffer
+		_, err := parseOptions([]string{"--help"}, &stderr)
+		if err != flag.ErrHelp {
+			t.Fatalf("err = %v, want flag.ErrHelp", err)
+		}
+	})
+
+	t.Run("update サブコマンドは cmdArgs に残る", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{"update"}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(opts.cmdArgs) != 1 || opts.cmdArgs[0] != "update" {
+			t.Errorf("cmdArgs = %v, want [update]", opts.cmdArgs)
+		}
+	})
+
+	t.Run("引数なしは全フィールドゼロ値", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if opts.force || opts.check || opts.showVersion || opts.workingDir != "" || len(opts.cmdArgs) != 0 {
+			t.Errorf("opts = %+v, want zero values", opts)
+		}
+	})
 }
 
-func TestIsBusinessDay(t *testing.T) {
-	// ここでは、syukujitsu_data.go（2026年以降のデータ）が含まれてコンパイルされることを前提にテスト
-	tests := []struct {
-		name     string
-		dateStr  string
-		expected bool // true: 営業日, false: 休業日（土日祝・年末年始）
-	}{
-		// 平日
-		{"平日（月曜日）", "2026-04-13", true}, // 2026/04/13 は月曜で祝日でもない
-		{"平日（金曜日）", "2026-04-17", true}, // 2026/04/17 は金曜
-		
-		// 土日
-		{"土曜日", "2026-04-18", false}, // 2026/04/18 は土曜
-		{"日曜日", "2026-04-19", false}, // 2026/04/19 は日曜
+func TestRunShowVersion(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	opts := &options{showVersion: true}
 
-		// 祝日（syukujitsu_data.go 定義）
-		// 内閣府データ上、2026年の元日、昭和の日、こどもの日などが存在する前提
-		{"祝日（元日）", "2026-01-01", false},
-		{"祝日（昭和の日）", "2026-04-29", false},
-		{"祝日（みどりの日）", "2026-05-04", false},
+	code := run(opts, &stdout, &stderr)
 
-		// 年末年始（12/31〜1/3）
-		// 1/1は祝日・年末年始の両方の条件に合致する
-		{"年末（大晦日）", "2025-12-31", false}, // 年は関係なく 12-31 なので false
-		{"年始（1月2日）", "2026-01-02", false},
-		{"年始（1月3日）", "2026-01-03", false},
+	if code != exitOK {
+		t.Errorf("code = %d, want %d", code, exitOK)
 	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			targetTime := stringToTime(t, tc.dateStr)
-			result := IsBusinessDay(targetTime)
-			if result != tc.expected {
-				t.Errorf("日付: %s, 期待値: %v, 結果: %v", tc.dateStr, tc.expected, result)
-			}
-		})
+	if stdout.String() != version+"\n" {
+		t.Errorf("stdout = %q, want %q", stdout.String(), version+"\n")
 	}
 }

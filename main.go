@@ -3,127 +3,131 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"run-on-business-day/internal/businessday"
+	"run-on-business-day/internal/update"
 )
 
 var version = "dev" // 埋め込まれたバージョン (ビルド時に -ldflags "-X main.version=..." で上書きされる)
 
-// IsBusinessDay は指定された日時(t)が日本の営業日かどうかを判定します
-// 非営業日: 土日、祝日（syukujitsuMap）、および 年末年始（12-31, 01-01, 01-02, 01-03）
-func IsBusinessDay(t time.Time) bool {
-	// 1. 土日判定
-	weekday := t.Weekday()
-	if weekday == time.Saturday || weekday == time.Sunday {
-		return false
-	}
+const (
+	exitOK             = 0
+	exitError          = 1
+	exitNonBusinessDay = 10
+)
 
-	// 2. 年末年始判定 (12-31, 01-01, 01-02, 01-03)
-	monthDay := t.Format("01-02")
-	if monthDay == "12-31" || monthDay == "01-01" || monthDay == "01-02" || monthDay == "01-03" {
-		return false
-	}
-
-	// 3. 祝日判定 (syukujitsu_data.go で自動生成されたマップを使用)
-	dateStr := t.Format("2006-01-02")
-	if _, isHoliday := syukujitsuMap[dateStr]; isHoliday {
-		return false
-	}
-
-	// 上記以外は営業日
-	return true
+// options は解析済みの CLI 引数を保持します
+type options struct {
+	force       bool
+	check       bool
+	showVersion bool
+	workingDir  string
+	cmdArgs     []string
 }
 
 func main() {
-	// 引数解析
-	forceFlag := flag.Bool("force", false, "営業日判定を無視して常に実行する")
-	checkFlag := flag.Bool("check", false, "営業日かどうかの判定のみを行い、コマンドは実行しない")
-	versionFlag := flag.Bool("version", false, "バージョンを表示する")
-	var workingDir string
-	flag.StringVar(&workingDir, "C", "", "コマンド実行前に指定したディレクトリに移動する (short)")
-	flag.StringVar(&workingDir, "cwd", "", "コマンド実行前に指定したディレクトリに移動する")
-
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [options] [command [args...]]\n\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Subcommands:\n")
-		fmt.Fprintf(os.Stderr, "  update\tGitHub Releases から最新バージョンに自己更新する\n\n")
-		fmt.Fprintf(os.Stderr, "Options:\n")
-		flag.PrintDefaults()
+	opts, err := parseOptions(os.Args[1:], os.Stderr)
+	if err != nil {
+		if err == flag.ErrHelp {
+			os.Exit(exitOK)
+		}
+		os.Exit(2)
 	}
 
-	flag.Parse()
+	os.Exit(run(opts, os.Stdout, os.Stderr))
+}
 
+// parseOptions は CLI 引数を解析して options を返します
+func parseOptions(argv []string, stderr io.Writer) (*options, error) {
+	fs := flag.NewFlagSet("run-on-business-day", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+
+	opts := &options{}
+	fs.BoolVar(&opts.force, "force", false, "営業日判定を無視して常に実行する")
+	fs.BoolVar(&opts.check, "check", false, "営業日かどうかの判定のみを行い、コマンドは実行しない")
+	fs.BoolVar(&opts.showVersion, "version", false, "バージョンを表示する")
+	fs.StringVar(&opts.workingDir, "C", "", "コマンド実行前に指定したディレクトリに移動する (short)")
+	fs.StringVar(&opts.workingDir, "cwd", "", "コマンド実行前に指定したディレクトリに移動する")
+
+	fs.Usage = func() {
+		fmt.Fprintf(stderr, "Usage: %s [options] [command [args...]]\n\n", "run-on-business-day")
+		fmt.Fprintf(stderr, "Subcommands:\n")
+		fmt.Fprintf(stderr, "  update\tGitHub Releases から最新バージョンに自己更新する\n\n")
+		fmt.Fprintf(stderr, "Options:\n")
+		fs.PrintDefaults()
+	}
+
+	if err := fs.Parse(argv); err != nil {
+		return nil, err
+	}
+
+	opts.cmdArgs = fs.Args()
+	return opts, nil
+}
+
+// run はモード分岐を行い、終了コードを返します
+func run(opts *options, stdout, stderr io.Writer) int {
 	// --version フラグの処理
-	if *versionFlag {
-		fmt.Println(version)
-		os.Exit(0)
+	if opts.showVersion {
+		fmt.Fprintln(stdout, version)
+		return exitOK
 	}
-
-	cmdArgs := flag.Args()
 
 	// update サブコマンド
-	if len(cmdArgs) > 0 && cmdArgs[0] == "update" {
-		runUpgrade()
-		return
+	if len(opts.cmdArgs) > 0 && opts.cmdArgs[0] == "update" {
+		if err := update.Run(version, stdout, stderr); err != nil {
+			fmt.Fprintf(stderr, "Error: %v\n", err)
+			return exitError
+		}
+		return exitOK
 	}
 
-	// JST (UTC+9) として現在時刻を取得
-	jst := time.FixedZone("JST", 9*60*60)
-	nowJST := time.Now().In(jst)
-	var err error
-
-	// 営業日判定とスキップ処理
-	isBusinessDay := IsBusinessDay(nowJST)
+	// 営業日判定
+	isBusinessDay := businessday.IsBusinessDay(businessday.NowJST())
 
 	// --check オプションの挙動: 判定結果のみ出力してコマンドは実行しない
-	if *checkFlag {
+	if opts.check {
 		if isBusinessDay {
-			fmt.Println("business day")
-			os.Exit(0)
-		} else {
-			fmt.Println("non-business day")
-			// 仕様通り、非営業日はコード10
-			os.Exit(10)
+			fmt.Fprintln(stdout, "business day")
+			return exitOK
 		}
+		fmt.Fprintln(stdout, "non-business day")
+		return exitNonBusinessDay
 	}
 
 	// コマンド引数がない場合は判定モード
-	if len(cmdArgs) == 0 {
-		// 判定モード: 営業日なら0、非営業日なら10
+	if len(opts.cmdArgs) == 0 {
 		if !isBusinessDay {
-			os.Exit(10)
+			return exitNonBusinessDay
 		}
-		os.Exit(0)
+		return exitOK
 	}
 
 	// コマンド指定時、非営業日はスキップ
-	if !isBusinessDay {
-		if !*forceFlag {
-			// 非営業日であり、--forceも指定されていない場合はスキップ（正常終了）
-			os.Exit(0)
-		}
+	if !isBusinessDay && !opts.force {
+		// 非営業日であり、--forceも指定されていない場合はスキップ（正常終了）
+		return exitOK
 	}
 
 	// 作業ディレクトリへ移動 (オプションが指定されている場合のみ)
-	if workingDir != "" {
-		err = os.Chdir(workingDir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: Failed to change working directory to '%s': %v\n", workingDir, err)
-			os.Exit(1)
+	if opts.workingDir != "" {
+		if err := os.Chdir(opts.workingDir); err != nil {
+			fmt.Fprintf(stderr, "Error: Failed to change working directory to '%s': %v\n", opts.workingDir, err)
+			return exitError
 		}
 	}
 
-	// サブプロセスの準備
-	cmdName := cmdArgs[0]
-	var execArgs []string
-	if len(cmdArgs) > 1 {
-		execArgs = cmdArgs[1:]
-	}
+	return executeCommand(opts.cmdArgs[0], opts.cmdArgs[1:], stderr)
+}
 
-	cmd := exec.Command(cmdName, execArgs...)
+// executeCommand はサブプロセスを実行し、その終了コードを返します
+func executeCommand(name string, args []string, stderr io.Writer) int {
+	cmd := exec.Command(name, args...)
 
 	// 親プロセスの入出力をそのまま子プロセスに繋ぐ (透過的)
 	cmd.Stdin = os.Stdin
@@ -142,21 +146,21 @@ func main() {
 	}()
 
 	// コマンドを実行して終了を待機 (同期)
-	err = cmd.Run()
+	err := cmd.Run()
 
 	// シグナル転送を停止
 	signal.Stop(sigChan)
 
 	// コマンドの終了コードを判定してそのまま返す
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitError.ExitCode())
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode()
 		}
 		// 起動失敗やパス見つからずなど
-		fmt.Fprintf(os.Stderr, "Error: Execution failed: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "Error: Execution failed: %v\n", err)
+		return exitError
 	}
 
 	// 正常終了 (そのままコード0で抜ける)
-	os.Exit(0)
+	return exitOK
 }

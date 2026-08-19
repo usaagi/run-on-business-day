@@ -1,9 +1,14 @@
 package update
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -165,4 +170,103 @@ func TestVerifyChecksum(t *testing.T) {
 			}
 		})
 	}
+}
+
+// newChecksumServer は SHA256SUMS とバイナリを配信するテスト用サーバを立て、
+// (SHA256SUMS の URL, バイナリの URL) を返します。
+func newChecksumServer(t *testing.T, assetName string, body []byte) (sumsURL, binURL string) {
+	t.Helper()
+
+	sum := sha256.Sum256(body)
+	sums := hex.EncodeToString(sum[:]) + "  " + assetName + "\n"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/SHA256SUMS", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(sums))
+	})
+	mux.HandleFunc("/asset", func(w http.ResponseWriter, r *http.Request) {
+		w.Write(body)
+	})
+	mux.HandleFunc("/notfound", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	return srv.URL + "/SHA256SUMS", srv.URL + "/asset"
+}
+
+func TestFetchChecksums(t *testing.T) {
+	body := []byte("dummy binary contents")
+	sumsURL, _ := newChecksumServer(t, "run-on-business-day-linux-amd64", body)
+
+	t.Run("正常に取得・解析できる", func(t *testing.T) {
+		got, err := fetchChecksums(http.DefaultClient, sumsURL)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		sum := sha256.Sum256(body)
+		want := hex.EncodeToString(sum[:])
+		if got["run-on-business-day-linux-amd64"] != want {
+			t.Errorf("got %q, want %q", got["run-on-business-day-linux-amd64"], want)
+		}
+	})
+
+	t.Run("404 はエラーになる", func(t *testing.T) {
+		notFound := sumsURL[:len(sumsURL)-len("/SHA256SUMS")] + "/notfound"
+		if _, err := fetchChecksums(http.DefaultClient, notFound); err == nil {
+			t.Error("404 でエラーが返りませんでした")
+		}
+	})
+}
+
+func TestVerifyDownload(t *testing.T) {
+	const target = "run-on-business-day-linux-amd64"
+	body := []byte("dummy binary contents")
+	sumsURL, binURL := newChecksumServer(t, target, body)
+
+	writeTemp := func(t *testing.T, content []byte) string {
+		t.Helper()
+		path := filepath.Join(t.TempDir(), "downloaded.bin")
+		if err := os.WriteFile(path, content, 0600); err != nil {
+			t.Fatalf("テスト用ファイルの作成に失敗: %v", err)
+		}
+		return path
+	}
+
+	assets := []githubAsset{
+		{Name: target, BrowserDownloadURL: binURL},
+		{Name: checksumsAssetName, BrowserDownloadURL: sumsURL},
+	}
+
+	t.Run("内容が一致すれば成功する", func(t *testing.T) {
+		if err := verifyDownload(assets, target, writeTemp(t, body)); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("内容が改ざんされていれば失敗する", func(t *testing.T) {
+		err := verifyDownload(assets, target, writeTemp(t, []byte("tampered contents")))
+		if err == nil {
+			t.Fatal("改ざんされたファイルが検証を通過しました")
+		}
+		if !strings.Contains(err.Error(), "チェックサムが一致しません") {
+			t.Errorf("想定外のエラーです: %v", err)
+		}
+	})
+
+	t.Run("SHA256SUMS が無ければ失敗する", func(t *testing.T) {
+		without := []githubAsset{{Name: target, BrowserDownloadURL: binURL}}
+		if err := verifyDownload(without, target, writeTemp(t, body)); err == nil {
+			t.Error("SHA256SUMS 不在で検証が通過しました")
+		}
+	})
+
+	t.Run("SHA256SUMS に対象のエントリが無ければ失敗する", func(t *testing.T) {
+		err := verifyDownload(assets, "run-on-business-day-linux-arm64", writeTemp(t, body))
+		if err == nil {
+			t.Error("エントリ不在で検証が通過しました")
+		}
+	})
 }

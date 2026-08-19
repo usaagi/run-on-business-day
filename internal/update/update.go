@@ -83,6 +83,13 @@ func Run(currentVersion string, stdout, stderr io.Writer) error {
 		return err
 	}
 
+	// 実行権限を与える前に完全性を検証する
+	fmt.Fprintln(stdout, "チェックサムを検証しています...")
+	if err := verifyDownload(release.Assets, target, tmpPath); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
+
 	// 実行権限を付与 (Windows以外)
 	if runtime.GOOS != "windows" {
 		if err := os.Chmod(tmpPath, 0755); err != nil {
@@ -234,4 +241,46 @@ func verifyChecksum(path, want string) error {
 		return fmt.Errorf("チェックサムが一致しません (期待値: %s, 実際: %s)", want, got)
 	}
 	return nil
+}
+
+// fetchChecksums は SHA256SUMS アセットを取得し、ファイル名 -> ハッシュ値のマップを返します
+func fetchChecksums(client *http.Client, url string) (map[string]string, error) {
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("チェックサムファイルの取得に失敗しました: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("チェックサムファイルの取得がステータス %d を返しました", resp.StatusCode)
+	}
+
+	// SHA256SUMS は数百バイト程度。念のため上限を設けて読み切る
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return nil, fmt.Errorf("チェックサムファイルの読み込みに失敗しました: %w", err)
+	}
+
+	return parseChecksums(data), nil
+}
+
+// verifyDownload はリリースの SHA256SUMS を取得し、ダウンロード済みファイルの完全性を検証します。
+// SHA256SUMS が取得できない場合や対象のエントリが無い場合も失敗として扱います (fail closed)。
+func verifyDownload(assets []githubAsset, target, path string) error {
+	sumsURL, ok := findAssetURL(assets, checksumsAssetName)
+	if !ok {
+		return fmt.Errorf("リリースに %s が見つからないため完全性を検証できません", checksumsAssetName)
+	}
+
+	sums, err := fetchChecksums(apiClient, sumsURL)
+	if err != nil {
+		return err
+	}
+
+	want, ok := sums[target]
+	if !ok {
+		return fmt.Errorf("%s に '%s' のエントリがありません", checksumsAssetName, target)
+	}
+
+	return verifyChecksum(path, want)
 }

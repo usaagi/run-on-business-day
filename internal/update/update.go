@@ -1,6 +1,10 @@
 package update
 
 import (
+	"bufio"
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +21,9 @@ const (
 	repoOwner = "usaagi"
 	repoName  = "run-on-business-day"
 	apiURL    = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/releases/latest"
+
+	// checksumsAssetName はリリースに添付されるチェックサム一覧のアセット名
+	checksumsAssetName = "SHA256SUMS"
 )
 
 var (
@@ -178,5 +185,53 @@ func replaceExecutable(execPath, tmpPath string) error {
 	// .old を削除 (失敗しても問題ない)
 	os.Remove(oldPath)
 
+	return nil
+}
+
+// parseChecksums は `<sha256>  <ファイル名>` 形式のテキストを
+// ファイル名 -> ハッシュ値(小文字16進) のマップに変換します。
+// 2フィールドに分解できない行は無視します。
+func parseChecksums(data []byte) map[string]string {
+	result := make(map[string]string)
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) != 2 {
+			continue
+		}
+		// sha256sum のバイナリモードマーカー "*" を取り除く
+		name := strings.TrimPrefix(fields[1], "*")
+		result[name] = strings.ToLower(fields[0])
+	}
+
+	return result
+}
+
+// fileSHA256 は指定ファイルの SHA-256 ハッシュを小文字16進文字列で返します
+func fileSHA256(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// verifyChecksum はファイルの SHA-256 ハッシュが期待値と一致するか検証します
+func verifyChecksum(path, want string) error {
+	got, err := fileSHA256(path)
+	if err != nil {
+		return fmt.Errorf("ハッシュ値の計算に失敗しました: %w", err)
+	}
+	if !strings.EqualFold(got, want) {
+		return fmt.Errorf("チェックサムが一致しません (期待値: %s, 実際: %s)", want, got)
+	}
 	return nil
 }

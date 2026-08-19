@@ -2,18 +2,18 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "if": "Edit(*.go)|Write(*.go)",
+            "if": "Edit(*.go)|Write(*.go)|MultiEdit(*.go)",
             "command": "gofmt -w \"$(cat | jq -r '.tool_input.file_path // .tool_response.filePath')\" 2>/dev/null || true",
             "statusMessage": "Formatting Go code with gofmt",
             "timeout": 10
           },
           {
             "type": "command",
-            "if": "Edit(*.go)|Write(*.go)",
+            "if": "Edit(*.go)|Write(*.go)|MultiEdit(*.go)",
             "command": "golangci-lint run --fix \"$(cat | jq -r '.tool_input.file_path // .tool_response.filePath')\" 2>/dev/null || true",
             "statusMessage": "Linting with golangci-lint",
             "timeout": 30

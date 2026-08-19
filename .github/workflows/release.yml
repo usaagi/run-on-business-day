@@ -76,12 +76,15 @@ jobs:
         with:
           path: artifacts
 
-      - name: Collect assets
+      - name: Collect assets and generate SHA256SUMS
         run: |
           set -euo pipefail
           mkdir -p release
           find artifacts -type f -exec mv -t release/ {} +
-          ls -l release
+          cd release
+          # SHA256SUMS 自身を含めないよう、対象をバイナリ名の接頭辞で明示する
+          sha256sum run-on-business-day-* > SHA256SUMS
+          cat SHA256SUMS
 
       - name: Create GitHub Release
         env:
@@ -93,5 +96,6 @@ jobs:
             release/run-on-business-day-linux-amd64 \
             release/run-on-business-day-linux-arm64 \
             release/run-on-business-day-windows-amd64.exe \
+            release/SHA256SUMS \
             --title "Release $GITHUB_REF_NAME" \
             --notes "Automated build for $GITHUB_REF_NAME"

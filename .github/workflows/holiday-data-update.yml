@@ -1,0 +1,105 @@
+name: Holiday Data Update
+
+on:
+  schedule:
+    # 毎月1日 00:00 UTC (09:00 JST)
+    # 年1回の cron は「60日間コミットの無いリポジトリの schedule は自動停止」の
+    # 対象になり発火しないため、月次にして差分がある時だけタグを打つ
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # データ更新のコミットとタグの push
+  actions: write    # gh workflow run による release.yml の起動
+
+concurrency:
+  group: holiday-data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update holiday data and tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # 既存タグの列挙に必要
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download latest holiday CSV
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 \
+            "https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv" \
+            -o syukujitsu.csv
+
+      - name: Generate syukujitsu_data.go
+        run: go run tools/csv2go/main.go
+
+      # 再生成したデータでテストが通ることを確認してからコミットする。
+      # TestSyukujitsuMapIsSane が空データや不正な日付を検知する。
+      - name: Verify regenerated data
+        run: |
+          set -euo pipefail
+          gofmt -l internal/businessday/syukujitsu_data.go
+          go vet ./...
+          go test ./...
+
+      - name: Detect changes
+        id: diff
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- internal/businessday/syukujitsu_data.go; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "祝日データに変更はありません。リリースは作成しません。"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- internal/businessday/syukujitsu_data.go
+          fi
+
+      - name: Compute next tag
+        if: steps.diff.outputs.changed == 'true'
+        id: tag
+        run: |
+          set -euo pipefail
+          YEAR=$(grep -oE '"[0-9]{4}-[0-9]{2}-[0-9]{2}"' internal/businessday/syukujitsu_data.go \
+            | tr -d '"' | cut -d- -f1 | sort -n | tail -1)
+          if [ -z "$YEAR" ]; then
+            echo "::error::祝日データから年を抽出できませんでした"
+            exit 1
+          fi
+          LAST=$(git tag --list "v${YEAR}.*" | sed -nE "s/^v${YEAR}\.([0-9]+).*/\1/p" | sort -n | tail -1)
+          TAG="v${YEAR}.$(( ${LAST:-0} + 1 ))"
+          echo "year=${YEAR}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}"   >> "$GITHUB_OUTPUT"
+          echo "次のタグ: ${TAG}"
+
+      - name: Commit, tag and trigger release
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          YEAR: ${{ steps.tag.outputs.year }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add internal/businessday/syukujitsu_data.go
+          git commit -m "chore: update holiday data (through ${YEAR})"
+          git tag -a "$TAG" -m "Holiday data update for ${YEAR}"
+
+          git push origin "HEAD:${BRANCH}"
+          git push origin "$TAG"
+
+          # GITHUB_TOKEN で push したタグは on:push:tags を発火させないため、
+          # release.yml をタグ ref 指定で明示的に起動する
+          gh workflow run release.yml --ref "$TAG"
+          echo "release.yml を ${TAG} で起動しました"

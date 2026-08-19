@@ -34,12 +34,6 @@ func TestIsBusinessDay(t *testing.T) {
 		{"土曜日", "2026-04-18", false}, // 2026/04/18 は土曜
 		{"日曜日", "2026-04-19", false}, // 2026/04/19 は日曜
 
-		// 祝日（syukujitsu_data.go 定義）
-		// 内閣府データ上、2026年の元日、昭和の日、こどもの日などが存在する前提
-		{"祝日（元日）", "2026-01-01", false},
-		{"祝日（昭和の日）", "2026-04-29", false},
-		{"祝日（みどりの日）", "2026-05-04", false},
-
 		// 年末年始（12/31〜1/3）
 		// 1/1は祝日・年末年始の両方の条件に合致する
 		{"年末（大晦日）", "2025-12-31", false}, // 年は関係なく 12-31 なので false
@@ -55,6 +49,53 @@ func TestIsBusinessDay(t *testing.T) {
 				t.Errorf("日付: %s, 期待値: %v, 結果: %v", tc.dateStr, tc.expected, result)
 			}
 		})
+	}
+}
+
+// TestIsBusinessDay_Holiday は祝日マップによる判定を、生成データの内容に依存せず検証します。
+// syukujitsu_data.go は毎年再生成され過去年のデータが削除されるため、
+// 実在の祝日をハードコードするとテストが将来壊れます。
+func TestIsBusinessDay_Holiday(t *testing.T) {
+	original := syukujitsuMap
+	t.Cleanup(func() { syukujitsuMap = original })
+
+	// 2099-04-29 は水曜、2099-05-04 は月曜。いずれも年末年始ルールに該当しない
+	syukujitsuMap = map[string]struct{}{
+		"2099-04-29": {},
+		"2099-05-04": {},
+	}
+
+	tests := []struct {
+		name     string
+		dateStr  string
+		expected bool
+	}{
+		{"マップに存在する日は非営業日（水曜）", "2099-04-29", false},
+		{"マップに存在する日は非営業日（月曜）", "2099-05-04", false},
+		{"マップに存在しない平日は営業日", "2099-04-30", true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			targetTime := stringToTime(t, tc.dateStr)
+			if got := IsBusinessDay(targetTime); got != tc.expected {
+				t.Errorf("日付: %s, 期待値: %v, 結果: %v", tc.dateStr, tc.expected, got)
+			}
+		})
+	}
+}
+
+// TestSyukujitsuMapIsSane は生成された祝日データ自体の健全性を検証します。
+// CSV の取得に失敗して空データのままビルドされる事故を検知するための番人です。
+func TestSyukujitsuMapIsSane(t *testing.T) {
+	if len(syukujitsuMap) < 10 {
+		t.Fatalf("祝日データが %d 件しかありません。CSV の取得または生成に失敗している可能性があります", len(syukujitsuMap))
+	}
+
+	for dateStr := range syukujitsuMap {
+		if _, err := time.Parse("2006-01-02", dateStr); err != nil {
+			t.Errorf("祝日データのキーが日付として不正です: %q", dateStr)
+		}
 	}
 }
 

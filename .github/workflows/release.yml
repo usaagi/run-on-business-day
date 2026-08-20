@@ -17,7 +17,7 @@ jobs:
   build:
     # タグ以外の ref で起動された場合は何もしない。
     # workflow_dispatch を main で実行すると "main" というタグが作られる事故を防ぐ。
-    # annual-release.yml からは `gh workflow run release.yml --ref "$TAG"` で
+    # holiday-data-update.yml からは `gh workflow run release.yml --ref "$TAG"` で
     # タグ ref を指定して起動されるため、この条件を満たす。
     if: startsWith(github.ref, 'refs/tags/v')
     name: Build for ${{ matrix.os }}-${{ matrix.arch }}
@@ -45,7 +45,7 @@ jobs:
           cache: true
 
       # 祝日データ (internal/businessday/syukujitsu_data.go) はリポジトリに
-      # コミット済みのものをそのまま使う。更新は annual-release.yml が担当する。
+      # コミット済みのものをそのまま使う。更新は holiday-data-update.yml が担当する。
       - name: Build binary
         env:
           GOOS: ${{ matrix.os }}

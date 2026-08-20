@@ -36,9 +36,16 @@ curl -fsSL https://github.com/usaagi/run-on-business-day/releases/latest/downloa
 
 #### Windows の場合
 
-`run-on-business-day-windows-amd64.exe` のファイルを任意のフォルダ（例: `C:\tools\` など）に `run-on-business-day.exe` にリネームして配置し、Windowsの環境変数 `Path` にそのフォルダを追加してください。
+以下のコマンドをPowerShellで実行すると、ダウンロードとリネーム・配置を一括で行えます。
 
-最後にターミナルで `run-on-business-day --check` を実行できれば配置完了です。
+```powershell
+# C:\tools\ に配置する場合
+Invoke-WebRequest -Uri "https://github.com/usaagi/run-on-business-day/releases/latest/download/run-on-business-day-windows-amd64.exe" -OutFile "C:\tools\run-on-business-day.exe"
+```
+
+配置後、Windowsの環境変数 `Path` に `C:\tools\` を追加してください。
+
+最後にターミナルを再起動し `run-on-business-day --check` を実行できれば配置完了です。
 
 
 ## アップデート
@@ -49,10 +56,23 @@ curl -fsSL https://github.com/usaagi/run-on-business-day/releases/latest/downloa
 run-on-business-day update
 ```
 
-- 現在のバージョンと最新リリースを比較し、同じであれば何もせず終了します
 - バイナリはユーザーがリネームしていても、実行ファイルと同じ名前・パスに上書きされます
-- 更新後は古いバイナリを削除し、新しいバイナリのみが残ります
 - `/usr/local/bin/` など書き込み権限が必要な場所に配置している場合は `sudo run-on-business-day update` で実行してください
+- ダウンロードしたバイナリは、リリースに添付された `SHA256SUMS` と照合してから配置されます。照合できない場合・一致しない場合は更新を中止します
+
+### アップデートの頻度
+
+毎月1日に自動で内閣府の祝日CSVを取得し、**前回から内容に変化があった場合のみ**新しいバージョンが公開されます。変化がない月はリリースされません。
+
+バージョンは `v<祝日データの最終年>.<連番>` の形式です（例: `v2027.6`）。
+
+### バージョンに含まれる祝日データの範囲
+
+祝日データは**リリース時点の年以降**のみが埋め込まれます。過去年のデータは判定に不要なため取り除かれます。
+
+- 例: 2026年に公開されたリリースには、2026年1月1日以降で内閣府CSVに収録されている祝日が含まれます
+- 内閣府CSVは通常、翌年分までしか公開されないため、実質的に「今年と来年」の祝日が入ります
+- 年をまたいで古いバイナリを使い続けると、新しい年の祝日が不足する場合があります。`run-on-business-day update` を定期的に実行してください
 
 
 ## 使い方
@@ -69,10 +89,10 @@ run-on-business-day [options] -- <shell command>
 
 ### 実行例
 ```bash
-# 平日であれば /srv/app ディレクトリに移動し、python main.py を実行する
+# 営業日であれば /srv/app ディレクトリに移動し、python main.py を実行する
 run-on-business-day -C /srv/app -- python main.py
 
-# 現在のディレクトリでそのまま実行し、シェル機能（リダイレクト）を利用する
+# 営業日であれば現在のディレクトリでそのまま実行し、シェル機能（リダイレクト）を利用する
 run-on-business-day -- sh -c 'backup.sh > out.log 2>&1'
 ```
 
@@ -82,6 +102,8 @@ run-on-business-day -- sh -c 'backup.sh > out.log 2>&1'
 | `-C`, `--cwd` | コマンド実行前に指定したディレクトリに移動（cd）します。 |
 | `--force` | 営業日の判定を無視し、休日・祝日であっても強制的にコマンドを実行します。 |
 | `--check` | 営業日かどうかの判定結果のみを出力し、実際のコマンドは実行せずに終了します。 |
+| `--version` | 現在のバージョンを表示します。 |
+| `--help` | ヘルプメッセージを表示します。 |
 
 ### 終了コード
 
@@ -94,7 +116,15 @@ run-on-business-day -- sh -c 'backup.sh > out.log 2>&1'
 - `0` : 営業日
 - `10`: 非営業日（休業日・祝日・年末年始）
 
-**bash での利用例：**
+#### チェックモード（`run-on-business-day --check`）
+- `0` : 営業日（出力: `business day`）
+- `10`: 非営業日（出力: `non-business day`）
+
+---
+
+## 他の利用方法 (bash, systemd)
+
+### bash での利用例
 ```bash
 # 営業日かどうかで処理を分岐
 if run-on-business-day; then
@@ -104,30 +134,12 @@ else
 fi
 ```
 
-#### チェックモード（`run-on-business-day --check`）
-- `0` : 営業日（出力: `business day`）
-- `10`: 非営業日（出力: `non-business day`）
-
----
-
-### 祝日データの自動更新
-
-本ツールは毎年3月10日に自動で新しいバージョンがリリースされます。例えば、2027年3月10日には `v2028.0` が自動で公開されます。
-
-バージョンに含まれる祝日データの範囲:
-- `v2028.0` は `1955年1月1日` 〜 `2028年12月31日` までの祝日データを含みます
-- 各バージョンは、1955年からそのバージョンの年の12月31日までの祝日データが埋め込まれています
-
-毎年自動でリリースされるため、定期的に更新することで、常に最新の祝日データを利用できます。
-
-
-## systemd での利用
-
+### systemd
 本ツールは cron や systemd timer などのスケジューラから呼び出されることを想定しています。systemd の `.service` ファイルや Podman Quadlet の `.container` ファイルで利用する際の設定例を以下に示します。
 
-ExecCondition は終了コード `0` なら ExecStart を実行します。`1-254` では実行されませんがエラーにはなりません。`255` のみがエラーになり扱いになります。
+ExecCondition は終了コード `0` なら ExecStart を実行します。`1-254` では実行されませんがエラーにはなりません(ログが汚れない) `255` のみがエラー扱いになります。
 
-### Podman Quadlet (.container ファイル)
+#### Podman Quadlet (.container ファイル)
 
 Podman Quadlet で定期実行するコンテナの起動前に営業日チェックを行う場合(.container)：
 
@@ -136,9 +148,9 @@ Podman Quadlet で定期実行するコンテナの起動前に営業日チェ�
 ExecCondition=/usr/local/bin/run-on-business-day
 ```
 
-営業日（exit code 0）のときのみコンテナが起動します。非営業日（exit code 10）のときはコンテナ起動がスキップされます。
+営業日のときのみコンテナが起動します。非営業日のときはコンテナ起動がスキップされます。
 
-### systemd service (.service ファイル)
+#### systemd service (.service ファイル)
 
 systemd service でコマンドを実行する場合(.service)：
 
@@ -156,14 +168,12 @@ ExecStart=uv run main.py
 ExecStart=/usr/local/bin/run-on-business-day -C /home/xxx/myapp -- uv run main.py
 ```
 
-営業日のみ指定されたコマンドを実行します。非営業日は何もせずに終了します。
-
 
 ## ビルド方法
 
-本ツールの祝日判定ロジックは、内閣府が公開する「国民の祝日」CSVデータを元に、コンパイル時（ビルド実行時）の年以降のデータのみを抽出してGoソースコードに自動的に埋め込んでいます。
+本ツールの祝日判定ロジックは、内閣府が公開する「国民の祝日」CSVデータを元に、コード生成実行時の年以降のデータのみを抽出してGoソースコードに自動的に埋め込んでいます。
 
-祝日CSVはビルド時に自動ダウンロードされるため、手動で配置する必要はありません。
+生成された `internal/businessday/syukujitsu_data.go` はリポジトリにコミットされており、リリースビルドはこのコミット済みファイルをそのまま使います。手元で最新化したい場合は `just generate`（内部で `just download-csv` が必要）を実行してください。
 
 ### 動作前提
 - Go の実行環境 (`go` コマンド)
@@ -178,3 +188,24 @@ just build-all
 ```
 
 > 備考：`dist/` ディレクトリ内に、Linux向け(`amd64`, `arm64`) と Windows向け(`.exe`) のバイナリが出力されます。環境にあったものをサーバーの `/usr/local/bin/` 等に配置してご利用ください。
+
+### リリース手順（メンテナ向け）
+
+祝日データの更新は毎月1日のワークフロー (`.github/workflows/holiday-data-update.yml`) が自動で行います。手動でリリースする場合は次の手順を踏みます。
+
+```bash
+# 1. 祝日データを最新化し、差分があればコミットする
+just download-csv
+just generate
+git add internal/businessday/syukujitsu_data.go
+git commit -m "chore: update holiday data"
+
+# 2. タグを打って push する（v<データ最終年>.<連番>）
+git tag -a v2027.6 -m "Holiday data update for 2027"
+git push origin main
+git push origin v2027.6
+```
+
+タグの push により `.github/workflows/release.yml` が起動し、3プラットフォーム向けのバイナリと `SHA256SUMS` を添付したリリースが作成されます。
+
+> リリースバイナリはタグが指すコミットの `syukujitsu_data.go` をそのままビルドします。タグを打つ前に手順1を済ませてください。

@@ -1,7 +1,7 @@
 # run-on-business-day 開発・ビルド用 Justfile
 
 # Windows (PowerShell) 環境でも動作するようにシェルを指定
-set shell := ["powershell.exe", "-c"]
+set shell := ["pwsh.exe", "-NoProfile", "-c"]
 
 # デフォルトのタスク（引数なしで実行した場合は一覧を表示）
 default:

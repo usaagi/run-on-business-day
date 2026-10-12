@@ -1,5 +1,6 @@
 dist/
 wheel_build/
+docs/
 
 # Generated holiday CSV (downloaded at build time)
 syukujitsu.csv

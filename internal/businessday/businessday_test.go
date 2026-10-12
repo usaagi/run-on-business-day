@@ -85,6 +85,41 @@ func TestIsBusinessDay_Holiday(t *testing.T) {
 	}
 }
 
+// TestIsWeekday は土日のみで判定し、祝日・年末年始を考慮しないことを検証します
+func TestIsWeekday(t *testing.T) {
+	original := syukujitsuMap
+	t.Cleanup(func() { syukujitsuMap = original })
+
+	// 2099-04-29 は水曜。祝日マップにあっても平日扱いになることを確認する
+	syukujitsuMap = map[string]struct{}{
+		"2099-04-29": {},
+	}
+
+	tests := []struct {
+		name     string
+		dateStr  string
+		expected bool
+	}{
+		{"平日（月曜日）", "2026-04-13", true},
+		{"平日（金曜日）", "2026-04-17", true},
+		{"土曜日", "2026-04-18", false},
+		{"日曜日", "2026-04-19", false},
+		{"祝日（水曜）は平日扱い", "2099-04-29", true},
+		{"大晦日（木曜）は平日扱い", "2026-12-31", true},
+		{"元日（金曜）は平日扱い", "2027-01-01", true},
+		{"年始の土曜は非営業日", "2027-01-02", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			targetTime := stringToTime(t, tc.dateStr)
+			if got := IsWeekday(targetTime); got != tc.expected {
+				t.Errorf("日付: %s, 期待値: %v, 結果: %v", tc.dateStr, tc.expected, got)
+			}
+		})
+	}
+}
+
 // TestSyukujitsuMapIsSane は生成された祝日データ自体の健全性を検証します。
 // CSV の取得に失敗して空データのままビルドされる事故を検知するための番人です。
 func TestSyukujitsuMapIsSane(t *testing.T) {

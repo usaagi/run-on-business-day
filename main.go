@@ -25,6 +25,7 @@ const (
 type options struct {
 	force       bool
 	check       bool
+	weekendOnly bool
 	showVersion bool
 	workingDir  string
 	cmdArgs     []string
@@ -50,6 +51,7 @@ func parseOptions(argv []string, stderr io.Writer) (*options, error) {
 	opts := &options{}
 	fs.BoolVar(&opts.force, "force", false, "営業日判定を無視して常に実行する")
 	fs.BoolVar(&opts.check, "check", false, "営業日かどうかの判定のみを行い、コマンドは実行しない")
+	fs.BoolVar(&opts.weekendOnly, "weekend-only", false, "土日のみを非営業日とする (祝日・年末年始は営業日として扱う)")
 	fs.BoolVar(&opts.showVersion, "version", false, "バージョンを表示する")
 	fs.StringVar(&opts.workingDir, "C", "", "コマンド実行前に指定したディレクトリに移動する (short)")
 	fs.StringVar(&opts.workingDir, "cwd", "", "コマンド実行前に指定したディレクトリに移動する")
@@ -87,8 +89,14 @@ func run(opts *options, stdout, stderr io.Writer) int {
 		return exitOK
 	}
 
-	// 営業日判定
-	isBusinessDay := businessday.IsBusinessDay(businessday.NowJST())
+	// 営業日判定 (--weekend-only 指定時は土日のみで判定)
+	now := businessday.NowJST()
+	var isBusinessDay bool
+	if opts.weekendOnly {
+		isBusinessDay = businessday.IsWeekday(now)
+	} else {
+		isBusinessDay = businessday.IsBusinessDay(now)
+	}
 
 	// --check オプションの挙動: 判定結果のみ出力してコマンドは実行しない
 	if opts.check {

@@ -18,6 +18,20 @@ func TestParseOptions(t *testing.T) {
 		}
 	})
 
+	t.Run("--weekend-only", func(t *testing.T) {
+		var stderr bytes.Buffer
+		opts, err := parseOptions([]string{"--weekend-only", "--check"}, &stderr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !opts.weekendOnly {
+			t.Errorf("weekendOnly = false, want true")
+		}
+		if !opts.check {
+			t.Errorf("check = false, want true")
+		}
+	})
+
 	t.Run("--force と -- 以降のコマンド引数", func(t *testing.T) {
 		var stderr bytes.Buffer
 		opts, err := parseOptions([]string{"--force", "--", "echo", "hi"}, &stderr)
@@ -104,7 +118,7 @@ func TestParseOptions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if opts.force || opts.check || opts.showVersion || opts.workingDir != "" || len(opts.cmdArgs) != 0 {
+		if opts.force || opts.check || opts.weekendOnly || opts.showVersion || opts.workingDir != "" || len(opts.cmdArgs) != 0 {
 			t.Errorf("opts = %+v, want zero values", opts)
 		}
 	})

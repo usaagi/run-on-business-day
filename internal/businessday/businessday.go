@@ -8,8 +8,7 @@ var jst = time.FixedZone("JST", 9*60*60)
 // 非営業日: 土日、祝日（syukujitsuMap）、および 年末年始（12-31, 01-01, 01-02, 01-03）
 func IsBusinessDay(t time.Time) bool {
 	// 1. 土日判定
-	weekday := t.Weekday()
-	if weekday == time.Saturday || weekday == time.Sunday {
+	if !IsWeekday(t) {
 		return false
 	}
 
@@ -27,6 +26,13 @@ func IsBusinessDay(t time.Time) bool {
 
 	// 上記以外は営業日
 	return true
+}
+
+// IsWeekday は指定された日時(t)が平日（月〜金）かどうかを判定します
+// 祝日・年末年始は考慮しません
+func IsWeekday(t time.Time) bool {
+	weekday := t.Weekday()
+	return weekday != time.Saturday && weekday != time.Sunday
 }
 
 // NowJST は現在時刻を JST (UTC+9) として返します
